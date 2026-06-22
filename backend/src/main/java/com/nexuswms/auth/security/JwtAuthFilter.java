@@ -1,0 +1,85 @@
+package com.nexuswms.auth.security;
+
+import com.nexuswms.auth.service.TokenBlocklistService;
+import com.nexuswms.user.entity.Role;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse; 
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+
+@Component
+public class JwtAuthFilter extends OncePerRequestFilter {
+
+    private final JwtUtil jwtUtil;
+    private final TokenBlocklistService tokenBlocklistService;
+
+        public JwtAuthFilter(JwtUtil jwtUtil, TokenBlocklistService tokenBlocklistService) {
+            this.jwtUtil = jwtUtil;
+            this.tokenBlocklistService = tokenBlocklistService;
+        }
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+        Objects.requireNonNull(request, "HttpServletRequest must not be null");
+        Objects.requireNonNull(response, "HttpServletResponse must not be null");
+        Objects.requireNonNull(filterChain, "FilterChain must not be null");
+        final String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        final String token = authHeader.substring(7);
+
+        if (!jwtUtil.isTokenValid(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String userId = jwtUtil.extractUserId(token);
+        // Check Redis blocklist — reject if user was suspended/terminated
+        if (tokenBlocklistService.isUserBlocked(userId)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String roleStr = jwtUtil.extractRole(token);
+        // Validate role exists in our enum before trusting it
+        Role role;
+        try {
+            role = Role.valueOf(roleStr);
+        } catch (IllegalArgumentException e) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        userId,
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                );
+
+        authentication.setDetails(
+                new WebAuthenticationDetailsSource().buildDetails(request)
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        filterChain.doFilter(request, response);
+    }
+}

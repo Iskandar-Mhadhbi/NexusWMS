@@ -1,0 +1,46 @@
+# Java / Maven
+backend/target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Spring Boot
+backend/src/main/resources/application-prod.yml
+
+# Python
+analytics/__pycache__/
+analytics/*.pyc
+analytics/.venv/
+analytics/venv/
+analytics/.pytest_cache/
+analytics/htmlcov/
+analytics/.coverage
+
+# Node / Angular
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/settings.json
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

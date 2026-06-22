@@ -1,0 +1,22 @@
+{"properties": [
+  {
+    "name": "app.api.version",
+    "type": "java.lang.String",
+    "description": "API version used as path segment prefix e.g. v1"
+  },
+  {
+    "name": "app.jwt.secret",
+    "type": "java.lang.String",
+    "description": "Secret key used to sign JWT tokens. Must be at least 32 characters."
+  },
+  {
+    "name": "app.jwt.expiration-ms",
+    "type": "java.lang.Long",
+    "description": "JWT token expiration time in milliseconds. Default 7 days = 604800000."
+  },
+  {
+    "name": "spring.mvc.apiversion.enabled",
+    "type": "java.lang.Boolean",
+    "description": "Enables Spring Boot 4 native API versioning support."
+  }
+]}
