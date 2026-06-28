@@ -13,3 +13,11 @@ info:
   app:
     name: NexusWMS
     version: 0.1.0
+    
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    url: /api-docs    

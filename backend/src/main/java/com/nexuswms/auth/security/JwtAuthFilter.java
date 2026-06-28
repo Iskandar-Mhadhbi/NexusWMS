@@ -23,10 +23,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final TokenBlocklistService tokenBlocklistService;
 
-        public JwtAuthFilter(JwtUtil jwtUtil, TokenBlocklistService tokenBlocklistService) {
-            this.jwtUtil = jwtUtil;
-            this.tokenBlocklistService = tokenBlocklistService;
-        }
+    public JwtAuthFilter(JwtUtil jwtUtil, TokenBlocklistService tokenBlocklistService) {
+        this.jwtUtil = jwtUtil;
+        this.tokenBlocklistService = tokenBlocklistService;
+    }
 
     @Override
     protected void doFilterInternal(
@@ -34,33 +34,47 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        
         Objects.requireNonNull(request, "HttpServletRequest must not be null");
         Objects.requireNonNull(response, "HttpServletResponse must not be null");
         Objects.requireNonNull(filterChain, "FilterChain must not be null");
+        
         final String authHeader = request.getHeader("Authorization");
+        String resolvedToken = null;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        // 1. Try extracting from Header
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            resolvedToken = authHeader.substring(7);
+        } 
+        // 2. Fallback to Query Parameter for WebSockets/SockJS
+        else if (request.getParameter("token") != null) {
+            resolvedToken = request.getParameter("token");
+        }
+
+        // 3. If no token is found anywhere, pass to the next filter (Spring Security will block it if required)
+        if (resolvedToken == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        final String token = authHeader.substring(7);
-
-        if (!jwtUtil.isTokenValid(token)) {
+        // 4. Validate the unified token
+        if (!jwtUtil.isTokenValid(resolvedToken)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String userId = jwtUtil.extractUserId(token);
-        // Check Redis blocklist — reject if user was suspended/terminated
+        String userId = jwtUtil.extractUserId(resolvedToken);
+        
+        // 5. Check Redis blocklist
         if (tokenBlocklistService.isUserBlocked(userId)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String roleStr = jwtUtil.extractRole(token);
-        // Validate role exists in our enum before trusting it
+        String roleStr = jwtUtil.extractRole(resolvedToken);
         Role role;
+        
+        // 6. Validate role enum
         try {
             role = Role.valueOf(roleStr);
         } catch (IllegalArgumentException e) {
@@ -68,6 +82,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        // 7. Authenticate
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
                         userId,

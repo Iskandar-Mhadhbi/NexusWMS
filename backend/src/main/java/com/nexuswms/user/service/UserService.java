@@ -1,6 +1,6 @@
 package com.nexuswms.user.service;
 
-import com.nexuswms.shared.exception.ResourceNotFoundException;
+import com.nexuswms.common.exception.ResourceNotFoundException;
 import com.nexuswms.user.dto.UserResponse;
 import com.nexuswms.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
