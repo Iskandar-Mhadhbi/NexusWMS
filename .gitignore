@@ -44,3 +44,11 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+analytics/venv/
+analytics/.env
+
