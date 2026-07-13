@@ -32,6 +32,9 @@ public class PackingTask {
     @Column(name = "assigned_to", nullable = false)
     private UUID assignedTo;
 
+    @Column(name = "started_by")
+    private UUID startedBy;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "station_id")
     private PackingStation station;

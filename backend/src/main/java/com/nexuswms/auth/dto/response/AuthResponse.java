@@ -1,4 +1,4 @@
-package com.nexuswms.auth.dto;
+package com.nexuswms.auth.dto.response;
 
 public record AuthResponse(
         String token,

@@ -1,4 +1,4 @@
-package com.nexuswms.auth.dto;
+package com.nexuswms.auth.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

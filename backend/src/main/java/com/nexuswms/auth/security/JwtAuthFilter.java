@@ -46,10 +46,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             resolvedToken = authHeader.substring(7);
         } 
+        /** 
         // 2. Fallback to Query Parameter for WebSockets/SockJS
         else if (request.getParameter("token") != null) {
             resolvedToken = request.getParameter("token");
         }
+        */
 
         // 3. If no token is found anywhere, pass to the next filter (Spring Security will block it if required)
         if (resolvedToken == null) {

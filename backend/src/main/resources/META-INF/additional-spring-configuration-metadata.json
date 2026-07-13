@@ -18,5 +18,10 @@
     "name": "spring.mvc.apiversion.enabled",
     "type": "java.lang.Boolean",
     "description": "Enables Spring Boot 4 native API versioning support."
+  }, 
+  {
+    "name": "app.cors.allowed-origins",
+    "type": "java.util.List<java.lang.String>",
+    "description": "Allowed CORS origins for the frontend dev server and production domain."
   }
 ]}

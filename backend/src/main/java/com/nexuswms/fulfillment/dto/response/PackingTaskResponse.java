@@ -1,4 +1,3 @@
-// PackingTaskResponse.java
 package com.nexuswms.fulfillment.dto.response;
 
 import com.nexuswms.fulfillment.entity.PackingTask;
@@ -11,6 +10,7 @@ public record PackingTaskResponse(
     UUID id,
     UUID pickListId,
     UUID assignedTo,
+    UUID startedBy,
     UUID stationId,
     String stationCode,
     PackingTaskStatus status,
@@ -22,6 +22,7 @@ public record PackingTaskResponse(
                 task.getId(),
                 task.getPickList().getId(),
                 task.getAssignedTo(),
+                task.getStartedBy(),
                 task.getStation() != null ? task.getStation().getId() : null,
                 task.getStation() != null ? task.getStation().getCode() : null,
                 task.getStatus(),

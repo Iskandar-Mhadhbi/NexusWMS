@@ -124,7 +124,8 @@ public class OrderService {
      */
     @Transactional(readOnly = true)
     public OrderResponse getById(UUID id) {
-        Order order = findOrderOrThrow(id);
+        Order order = orderRepository.findById(id)
+                                     .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
         List<OrderLine> lines = orderLineRepository.findByOrder_Id(id);
         Set<UUID> skuIds = lines.stream()
                 .map(l -> Objects.requireNonNull(l.getSkuId()))
@@ -147,7 +148,8 @@ public class OrderService {
      */
     @Transactional
     public OrderResponse cancel(UUID id,UUID principalUserId) {
-        Order order = findOrderOrThrow(id);
+        Order order = orderRepository.findById(id)
+                                     .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
 
         if (order.getStatus() != OrderStatus.RECEIVED && order.getStatus() != OrderStatus.VALIDATED) {
             throw new IllegalArgumentException(
@@ -187,13 +189,11 @@ public class OrderService {
      */
     @Transactional
     public FulfillmentRequestResponse generateFulfillmentRequest(UUID id, UUID generatedBy) {
-        Order order = findOrderOrThrow(id);
-
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
         if (order.getStatus() != OrderStatus.RECEIVED) {
-            throw new IllegalArgumentException(
-                    "Cannot generate fulfillment request for order in status: " + order.getStatus());
+            throw new IllegalArgumentException("Cannot generate fulfillment request for order in status: " + order.getStatus());
         }
-
         fulfillmentRequestRepository.findByOrder_Id(id).ifPresent(fr -> {
             throw new ConflictException("Fulfillment request already exists for order: " + order.getOrderNumber());
         });
@@ -218,11 +218,7 @@ public class OrderService {
 
     /**
      * Fetches an order by ID or throws ResourceNotFoundException.
-     */
-    private Order findOrderOrThrow(UUID id) {
-        return orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
-    }
+     */ 
 
     /**
      * Builds an OrderResponse by enriching lines with SKU metadata from the provided map.

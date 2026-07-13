@@ -1,4 +1,4 @@
-package com.nexuswms.user.dto;
+package com.nexuswms.user.dto.response;
 
 import com.nexuswms.user.entity.User;
 

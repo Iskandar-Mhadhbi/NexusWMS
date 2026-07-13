@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Date;
 import java.util.UUID;
 
@@ -59,5 +60,19 @@ public class JwtUtil {
 
     public String extractRole(String token) {
         return extractClaims(token).get("role", String.class);
+    }
+
+    /**
+     * Calculates the remaining lifetime of a token from the current moment.
+     * Used to set the Redis blocklist TTL on logout or user suspension,
+     * ensuring the blocklist entry expires when the token would have expired.
+     *
+     * @param token The raw JWT string.
+     * @return Duration representing the remaining validity window.
+     */
+    public Duration extractRemainingTtl(String token) {
+        Date expiration = extractClaims(token).getExpiration();
+        long remainingMs = expiration.getTime() - System.currentTimeMillis();
+        return Duration.ofMillis(Math.max(remainingMs, 0));
     }
 }

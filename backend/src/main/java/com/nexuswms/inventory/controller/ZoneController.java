@@ -7,7 +7,11 @@ import com.nexuswms.inventory.dto.response.AisleResponse;
 import com.nexuswms.inventory.dto.response.ShelfResponse;
 import com.nexuswms.inventory.dto.response.ZoneResponse;
 import com.nexuswms.inventory.service.LocationService;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,92 +20,108 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * REST Controller for managing warehouse zones, aisles, and shelves.
+ * Handles the physical layout structure of the warehouse.
+ */
 @RestController
-@RequestMapping("/api/v{version}/zones")
+@RequiredArgsConstructor
+@RequestMapping("/api/v${spring.mvc.apiversion.supported}/zones")
+@Tag(name = "Zones", description = "Warehouse zone management")
 public class ZoneController {
 
-    private final LocationService locationService;
+    private final LocationService locationService; 
 
-    public ZoneController(LocationService locationService) {
-        this.locationService = locationService;
-    }
-
-    /* -------------------------------------------------------------------------
-     * POST /zones
+    /**
      * Creates a new warehouse zone (e.g. RECEIVING, STORAGE-A, DISPATCH).
-     * Restricted to ADMIN and INVENTORY_CONTROLLER — physical layout changes
-     * require elevated permissions.
-     * ------------------------------------------------------------------------- */
-    @PostMapping(version = "1.0")
+     *
+     * @param request Zone details
+     * @return The created ZoneResponse wrapped in a 201 Created ResponseEntity.
+     */
+    @PostMapping( )
     @PreAuthorize("hasAnyRole('ADMIN', 'INVENTORY_CONTROLLER')")
+    @ApiResponse(responseCode = "201", description = "Warehouse zone successfully created")
     public ResponseEntity<ZoneResponse> createZone(@Valid @RequestBody ZoneRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(locationService.createZone(request));
     }
 
-    /* -------------------------------------------------------------------------
-     * GET /zones
+    /**
      * Returns all warehouse zones.
-     * RECEIVER included — needs zone list to assign shelf locations on inbound.
-     * ------------------------------------------------------------------------- */
-    @GetMapping(version = "1.0")
+     *
+     * @return List of all ZoneResponse wrapped in a 200 OK ResponseEntity.
+     */
+    @GetMapping( )
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'INVENTORY_CONTROLLER', 'RECEIVER')")
+    @ApiResponse(responseCode = "200", description = "List of all warehouse zones retrieved successfully")
     public ResponseEntity<List<ZoneResponse>> getAllZones() {
         return ResponseEntity.ok(locationService.getAllZones());
     }
 
-    /* -------------------------------------------------------------------------
-     * GET /zones/{id}
+    /**
      * Returns a single zone by UUID with its capacity and occupancy info.
-     * ------------------------------------------------------------------------- */
-    @GetMapping(value = "/{id}", version = "1.0")
+     *
+     * @param id UUID of the zone
+     * @return The ZoneResponse wrapped in a 200 OK ResponseEntity.
+     */
+    @GetMapping ("/{id}" )
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'INVENTORY_CONTROLLER', 'RECEIVER')")
+    @ApiResponse(responseCode = "200", description = "Zone details retrieved successfully by ID")
     public ResponseEntity<ZoneResponse> getZoneById(@PathVariable UUID id) {
         return ResponseEntity.ok(locationService.getZoneById(id));
     }
 
-    /* -------------------------------------------------------------------------
-     * POST /zones/aisles
+    /**
      * Creates a new aisle within a zone.
-     * Aisle code must be unique within its zone (enforced at service layer).
-     * ------------------------------------------------------------------------- */
-    @PostMapping(value = "/aisles", version = "1.0")
+     * Aisle code must be unique within its zone.
+     *
+     * @param request Aisle details
+     * @return The created AisleResponse wrapped in a 201 Created ResponseEntity.
+     */
+    @PostMapping( "/aisles" )
     @PreAuthorize("hasAnyRole('ADMIN', 'INVENTORY_CONTROLLER')")
+    @ApiResponse(responseCode = "201", description = "Aisle successfully created within the zone")
     public ResponseEntity<AisleResponse> createAisle(@Valid @RequestBody AisleRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(locationService.createAisle(request));
     }
 
-    /* -------------------------------------------------------------------------
-     * GET /zones/{zoneId}/aisles
+    /**
      * Returns all aisles within a zone.
-     * PICKER included — needs aisle layout to navigate pick lists.
-     * ------------------------------------------------------------------------- */
-    @GetMapping(value = "/{zoneId}/aisles", version = "1.0")
+     *
+     * @param zoneId UUID of the zone
+     * @return List of AisleResponse wrapped in a 200 OK ResponseEntity.
+     */
+    @GetMapping( "/{zoneId}/aisles" )
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'INVENTORY_CONTROLLER', 'RECEIVER', 'PICKER')")
+    @ApiResponse(responseCode = "200", description = "List of aisles for the zone retrieved successfully")
     public ResponseEntity<List<AisleResponse>> getAislesByZone(@PathVariable UUID zoneId) {
         return ResponseEntity.ok(locationService.getAislesByZone(zoneId));
     }
 
-    /* -------------------------------------------------------------------------
-     * POST /zones/shelves
+    /**
      * Creates a new shelf within an aisle.
-     * Shelf code, max weight and level are set at creation and do not change.
-     * ------------------------------------------------------------------------- */
-    @PostMapping(value = "/shelves", version = "1.0")
+     *
+     * @param request Shelf details
+     * @return The created ShelfResponse wrapped in a 201 Created ResponseEntity.
+     */
+    @PostMapping( "/shelves" )
     @PreAuthorize("hasAnyRole('ADMIN', 'INVENTORY_CONTROLLER')")
+    @ApiResponse(responseCode = "201", description = "Shelf successfully created within the aisle")
     public ResponseEntity<ShelfResponse> createShelf(@Valid @RequestBody ShelfRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(locationService.createShelf(request));
     }
 
-    /* -------------------------------------------------------------------------
-     * GET /zones/{zoneId}/shelves
+    /**
      * Returns all shelves within a zone across all its aisles.
-     * PICKER and RECEIVER included — both need shelf codes during operations.
-     * ------------------------------------------------------------------------- */
-    @GetMapping(value = "/{zoneId}/shelves", version = "1.0")
+     *
+     * @param zoneId UUID of the zone
+     * @return List of ShelfResponse wrapped in a 200 OK ResponseEntity.
+     */
+    @GetMapping( "/{zoneId}/shelves" )
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'INVENTORY_CONTROLLER', 'RECEIVER', 'PICKER')")
+    @ApiResponse(responseCode = "200", description = "List of shelves for the zone retrieved successfully")
     public ResponseEntity<List<ShelfResponse>> getShelvesByZone(@PathVariable UUID zoneId) {
         return ResponseEntity.ok(locationService.getShelvesByZone(zoneId));
     }

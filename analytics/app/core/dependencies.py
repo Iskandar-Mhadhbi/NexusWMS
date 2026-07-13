@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
@@ -5,6 +7,8 @@ from redis.asyncio import Redis
 
 from app.core.redis_client import get_redis
 from app.core.security import decode_token, extract_role, is_analytics_authorized
+
+logger = logging.getLogger("nexuswms.analytics.access")
 
 bearer_scheme = HTTPBearer()
 
@@ -19,6 +23,9 @@ async def require_manager(
       1. Decode and validate JWT signature
       2. Check Redis blocklist (suspended/terminated users)
       3. Verify role is ADMIN or MANAGER
+    Logs every authorized access for accountability — analytics endpoints
+    expose financial and performance data, so knowing who viewed what
+    and when is a legitimate access-audit concern even on a read-only service.
     """
     unauthorized = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -48,5 +55,12 @@ async def require_manager(
 
     if not is_analytics_authorized(role):
         raise forbidden
+
+    logger.info(
+        "analytics_access user_id=%s email=%s role=%s",
+        user_id,
+        claims.get("email"),
+        role,
+    )
 
     return claims

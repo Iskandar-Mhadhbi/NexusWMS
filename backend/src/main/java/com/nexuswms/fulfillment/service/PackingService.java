@@ -76,16 +76,20 @@ public class PackingService {
 
     /* ----- Start Packing Task ----- */
     /**
-     * Marks a packing task as IN_PROGRESS and records the start time.
+     * Marks a packing task as IN_PROGRESS, records the start time, and records
+     * the actual worker who started it. This may differ from assignedTo when
+     * a teammate picks up a task originally assigned to someone else —
+     * startedBy preserves accountability for who performed the physical action.
      *
-     * @param taskId the UUID of the packing task
+     * @param taskId          the UUID of the packing task
+     * @param principalUserId the UUID of the worker starting the task (from JWT principal)
      * @return the updated packing task as a response DTO
      * @throws ResourceNotFoundException if the task does not exist
-     * @throws IllegalArgumentException  if the task is not in PENDING status
+     * @throws IllegalArgumentException  if the task is not in PENDING status   
      */
     @Transactional
-    public PackingTaskResponse startTask(UUID taskId) {
-        PackingTask task = findTaskOrThrow(taskId);
+    public PackingTaskResponse startTask(UUID taskId, UUID principalUserId) {
+        PackingTask task = findTaskOrThrowNotFound(taskId);
 
         if (task.getStatus() != PackingTaskStatus.PENDING) {
             throw new IllegalArgumentException(
@@ -94,66 +98,66 @@ public class PackingService {
 
         task.setStatus(PackingTaskStatus.IN_PROGRESS);
         task.setStartedAt(LocalDateTime.now());
+        task.setStartedBy(principalUserId);
         packingTaskRepository.save(task);
 
         return PackingTaskResponse.from(task);
     }
+        /* ----- Complete Packing Task ----- */
+        /**
+         * Completes a packing task and creates a parcel with a generated tracking number and barcode.
+         * Updates all order lines to PACKED status and transitions the order to PACKING.
+         *
+         * @param taskId  the UUID of the packing task
+         * @param request the packing completion payload (weight, dimensions)
+         * @return the created parcel as a response DTO
+         * @throws ResourceNotFoundException if the task does not exist
+         * @throws IllegalArgumentException  if the task is not IN_PROGRESS
+         */
+        @Transactional
+        public ParcelResponse completeTask(UUID taskId, PackingCompleteRequest request,UUID principalUserId) {
+            PackingTask task = findTaskOrThrowNotFound(taskId);
 
-    /* ----- Complete Packing Task ----- */
-    /**
-     * Completes a packing task and creates a parcel with a generated tracking number and barcode.
-     * Updates all order lines to PACKED status and transitions the order to PACKING.
-     *
-     * @param taskId  the UUID of the packing task
-     * @param request the packing completion payload (weight, dimensions)
-     * @return the created parcel as a response DTO
-     * @throws ResourceNotFoundException if the task does not exist
-     * @throws IllegalArgumentException  if the task is not IN_PROGRESS
-     */
-    @Transactional
-    public ParcelResponse completeTask(UUID taskId, PackingCompleteRequest request,UUID principalUserId) {
-        PackingTask task = findTaskOrThrow(taskId);
+            if (task.getStatus() != PackingTaskStatus.IN_PROGRESS) {
+                throw new IllegalArgumentException(
+                        "Task is not IN_PROGRESS. Current status: " + task.getStatus());
+            }
 
-        if (task.getStatus() != PackingTaskStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException(
-                    "Task is not IN_PROGRESS. Current status: " + task.getStatus());
+            task.setStatus(PackingTaskStatus.COMPLETED);
+            task.setCompletedAt(LocalDateTime.now());
+            packingTaskRepository.save(task);
+
+            Order order = task.getPickList().getFulfillmentRequest().getOrder();
+
+            Parcel parcel = new Parcel();
+            parcel.setOrder(order);
+            parcel.setPackingTask(task);
+            parcel.setTrackingNumber(generateTrackingNumber());
+            parcel.setBarcode(generateBarcode());
+            parcel.setWeightKg(request.weightKg());
+            parcel.setDimensions(request.dimensions());
+            parcel.setStatus(PackageStatus.PACKED);
+            parcelRepository.save(parcel);
+
+            List<OrderLine> lines = orderLineRepository.findByOrder_Id(order.getId());
+            lines.forEach(line -> {
+                line.setQuantityPacked(line.getQuantityPicked());
+                line.setStatus(OrderLineStatus.PACKED);
+                orderLineRepository.save(line);
+            });
+
+            order.setStatus(OrderStatus.PACKING);
+            orderRepository.save(order);
+
+            eventPublisher.publish(WarehouseEvent.of(
+                "PARCEL_PACKED",
+                parcel.getId().toString(),
+                parcel.getStatus().name(),
+                principalUserId.toString(),
+                "PACKING"
+            ));
+            return ParcelResponse.from(parcel);
         }
-
-        task.setStatus(PackingTaskStatus.COMPLETED);
-        task.setCompletedAt(LocalDateTime.now());
-        packingTaskRepository.save(task);
-
-        Order order = task.getPickList().getFulfillmentRequest().getOrder();
-
-        Parcel parcel = new Parcel();
-        parcel.setOrder(order);
-        parcel.setPackingTask(task);
-        parcel.setTrackingNumber(generateTrackingNumber());
-        parcel.setBarcode(generateBarcode());
-        parcel.setWeightKg(request.weightKg());
-        parcel.setDimensions(request.dimensions());
-        parcel.setStatus(PackageStatus.PACKED);
-        parcelRepository.save(parcel);
-
-        List<OrderLine> lines = orderLineRepository.findByOrder_Id(order.getId());
-        lines.forEach(line -> {
-            line.setQuantityPacked(line.getQuantityPicked());
-            line.setStatus(OrderLineStatus.PACKED);
-            orderLineRepository.save(line);
-        });
-
-        order.setStatus(OrderStatus.PACKING);
-        orderRepository.save(order);
-
-        eventPublisher.publish(WarehouseEvent.of(
-            "PARCEL_PACKED",
-            parcel.getId().toString(),
-            parcel.getStatus().name(),
-            principalUserId.toString(),
-            "PACKING"
-        ));
-        return ParcelResponse.from(parcel);
-    }
 
     /* ----- Get Tasks By Worker ----- */
     /**
@@ -174,7 +178,7 @@ public class PackingService {
     /**
      * Fetches a packing task by ID or throws ResourceNotFoundException.
      */
-    private PackingTask findTaskOrThrow(UUID taskId) {
+    private PackingTask findTaskOrThrowNotFound(UUID taskId) {
         return packingTaskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Packing task not found with id: " + taskId));
