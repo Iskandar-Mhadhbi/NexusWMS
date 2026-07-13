@@ -1,0 +1,52 @@
+// Design tokens — CSS custom properties for the three supported themes
+// (light / dim / dark) plus the eight domain accent colors.
+//
+// Domain accents are intentionally theme-invariant (defined once under :root,
+// not repeated per theme) — only the neutral surface/text/border scale changes
+// between themes. Tinted domain backgrounds are derived at the point of use
+// via color-mix(), not hand-authored per theme. See phase7_frontend_design.md
+// §5.1 for the full palette rationale.
+
+:root,
+[data-theme="light"] {
+  --surface-0: #F5F4F1;
+  --surface-1: #FFFFFF;
+  --border: #E4E2DC;
+  --text-primary: #26251F;
+  --text-secondary: #6B6960;
+  --text-muted: #9C9A92;
+}
+
+[data-theme="dim"] {
+  --surface-0: #282723;
+  --surface-1: #322F2B;
+  --border: #423F3A;
+  --text-primary: #F0EEE9;
+  --text-secondary: #ABA89F;
+  --text-muted: #726F67;
+}
+
+[data-theme="dark"] {
+  // Matches the worker terminal's fixed dark palette exactly — choosing
+  // "dark" as a manager puts you in the same visual register workers always
+  // see by default, rather than inventing a fourth distinct dark tone.
+  --surface-0: #1C1C1A;
+  --surface-1: #242422;
+  --border: #34332F;
+  --text-primary: #FAF9F6;
+  --text-secondary: #9C9A92;
+  --text-muted: #6B6960;
+}
+
+// Domain accents — one hue per domain, constant across all three themes
+:root {
+  --domain-live-ops: #6B5CA5;
+  --domain-procurement: #2F6FBD;
+  --domain-inventory: #5B6B72;
+  --domain-fulfillment: #EF9F27;
+  --domain-dispatch: #3F8A5C;
+  --domain-reports: #2C8C89;
+  --domain-finance: #C85A8C;
+  --domain-employees: #D97757;
+  --domain-danger: #C4453B;
+}

@@ -1,0 +1,18 @@
+// Global base styles — resets and app-wide defaults only.
+// Anything component-specific belongs in that component's own scoped <style>
+// block. This file should stay small; if it's growing, something probably
+// belongs in a component instead.
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  // Reference the theme tokens here (not hardcoded) so the page background
+  // and default text color respond to the light/dim/dark switch too —
+  // not just individual component surfaces.
+  background: var(--surface-0);
+  color: var(--text-primary);
+}
