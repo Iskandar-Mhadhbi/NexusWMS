@@ -11,5 +11,6 @@ public interface ShelfRepository extends JpaRepository<Shelf, UUID> {
     List<Shelf> findByAisleId(UUID aisleId);
     List<Shelf> findByAisleZoneId(UUID zoneId);
     Optional<Shelf> findByCode(String code);
+    boolean existsByAisleIdAndCode(UUID aisleId, String code);
     boolean existsByCode(String code);
 }

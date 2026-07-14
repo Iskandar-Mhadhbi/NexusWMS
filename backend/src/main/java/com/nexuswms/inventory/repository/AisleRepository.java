@@ -10,5 +10,6 @@ import java.util.UUID;
 public interface AisleRepository extends JpaRepository<Aisle, UUID> {
     List<Aisle> findByZoneId(UUID zoneId);
     Optional<Aisle> findByCode(String code);
+    boolean existsByZoneIdAndCode(UUID zoneId, String code);
     boolean existsByCode(String code);
 }

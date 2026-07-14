@@ -72,8 +72,8 @@ public class LocationService {
 
     @Transactional
     public AisleResponse createAisle(AisleRequest request) {
-        if (aisleRepository.existsByCode(request.code())) {
-            throw new ConflictException("Aisle code already exists: " + request.code());
+        if (aisleRepository.existsByZoneIdAndCode(request.zoneId(), request.code())) {
+            throw new ConflictException("Aisle code already exists in zone " + request.zoneId() + ": " + request.code());
         }
         Zone zone = zoneRepository.findById(request.zoneId())
                 .orElseThrow(() -> new ResourceNotFoundException("Zone", request.zoneId().toString()));
@@ -97,8 +97,8 @@ public class LocationService {
 
     @Transactional
     public ShelfResponse createShelf(ShelfRequest request) {
-        if (shelfRepository.existsByCode(request.code())) {
-            throw new ConflictException("Shelf code already exists: " + request.code());
+        if (shelfRepository.existsByAisleIdAndCode(request.aisleId(), request.code())) {
+            throw new ConflictException("Shelf code already exists in aisle " + request.aisleId() + ": " + request.code());
         }
         Aisle aisle = aisleRepository.findById(request.aisleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Aisle", request.aisleId().toString()));

@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
-@Table(name = "shelves")
+@Table(name = "shelves",uniqueConstraints = @UniqueConstraint(columnNames = {"aisle_id", "code"}))
 @Getter
 @Setter
 @ToString(exclude = {"aisle"})
@@ -37,7 +37,7 @@ public class Shelf {
     private String level;
 
     @NotBlank
-    @Column(nullable = false, unique = true, length = 30)
+    @Column(nullable = false, length = 30)
     private String code;
 
     @Column(name = "max_weight", precision = 10, scale = 2)

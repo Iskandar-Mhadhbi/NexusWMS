@@ -12,7 +12,7 @@ import lombok.ToString;
 import java.util.UUID;
 
 @Entity
-@Table(name = "aisles")
+@Table(name = "aisles",uniqueConstraints = @UniqueConstraint(columnNames = {"zone_id", "code"}))
 @Getter
 @Setter
 @ToString(exclude = {"zone"})
@@ -31,6 +31,6 @@ public class Aisle {
     private Zone zone;
 
     @NotBlank
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(nullable = false, length = 20)
     private String code;
 }

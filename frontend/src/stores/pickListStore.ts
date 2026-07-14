@@ -1,11 +1,3 @@
-/**
- * pickListStore.ts
- * Owns the picker terminal's active pick list state. After a successful
- * pick, deliberately refetches the whole list via load() rather than
- * trusting the pick endpoint's response shape — that shape isn't confirmed
- * (see pickList.ts header), so re-fetching from the known-good GET is the
- * safer source of truth.
- */
 import { defineStore } from 'pinia';
 import { pickListService } from '@/features/picker/services/pickListService';
 import type { PickList, PickListItem } from '@/core/models/pickList';
@@ -21,15 +13,19 @@ export const usePickListStore = defineStore('pickList', {
   getters: {
     /** First PENDING item — the one currently shown on the terminal. */
     currentItem: (state): PickListItem | null =>
-      state.pickList?.items.find((i) => i.status === 'PENDING') ?? null,
+      state.pickList?.items?.find((i) => i.status === 'PENDING') ?? null,
 
     pickedCount: (state): number =>
-      state.pickList?.items.filter((i) => i.status !== 'PENDING').length ?? 0,
+      state.pickList?.items?.filter((i) => i.status !== 'PENDING').length ?? 0,
 
-    totalCount: (state): number => state.pickList?.items.length ?? 0,
+    totalCount: (state): number => state.pickList?.items?.length ?? 0,
 
-    isComplete: (state): boolean =>
-      state.pickList != null && state.pickList.items.every((i) => i.status !== 'PENDING'),
+    // SAFE ACCESS: Use optional chaining on state.pickList?.items
+    isComplete: (state): boolean => {
+      const items = state.pickList?.items;
+      if (!items || items.length === 0) return false;
+      return items.every((i) => i.status !== 'PENDING');
+    },
   },
 
   actions: {
@@ -38,7 +34,17 @@ export const usePickListStore = defineStore('pickList', {
       this.error = null;
       try {
         const { data } = await pickListService.getMyActivePickList();
-        this.pickList = data;
+
+        // Check if backend returned an empty array or empty response
+        if (Array.isArray(data)) {
+          this.pickList = data.length > 0 ? data[0] : null;
+        } else {
+          this.pickList = data ?? null;
+        }
+
+        if (!this.pickList) {
+          this.error = 'No active pick list assigned.';
+        }
       } catch (err) {
         this.error = 'No active pick list assigned.';
         console.error('[pickListStore] load failed:', err);

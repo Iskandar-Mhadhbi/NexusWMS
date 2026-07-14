@@ -128,26 +128,65 @@ public class StockService {
                 .worker(worker)
                 .batchId(request.batchId())
                 .notes(request.reason())
-                .build());
+                .build()); 
 
-        Integer total = skuLocationRepository.getTotalQuantityBySkuId(sku.getId());
-        if (total <= sku.getReorderPoint() &&
-                !reorderAlertRepository.existsBySkuIdAndStatus(sku.getId(), "OPEN")) {
-            reorderAlertRepository.save(ReorderAlert.builder()
-                    .sku(sku)
-                    .currentQuantity(total)
-                    .reorderPoint(sku.getReorderPoint())
-                    .build());
-            eventPublisher.publishAlert(WarehouseEvent.of(
-                "REORDER_ALERT",
-                sku.getSkuCode(),
-                "OPEN",
-                "SYSTEM",
-                "INVENTORY"
-            ));        
+        if (request.quantity() < 0) {
+            checkAndTriggerReorderAlert(sku);
+        } else {
+            checkAndResolveReorderAlert(sku);
         }
 
         return SkuLocationResponse.from(location);
+    }
+
+    /* -------------------------------------------------------------------------
+     * Helper method to evaluate stock level against reorder point.
+     * Creates an OPEN ReorderAlert and publishes a REORDER_ALERT warehouse event
+     * if total stock is at or below the SKU's reorder point and no open alert
+     * currently exists for this SKU.
+     * ------------------------------------------------------------------------- */
+    private void checkAndTriggerReorderAlert(Sku sku) {
+        Integer total = skuLocationRepository.getTotalQuantityBySkuId(sku.getId());
+        
+        if (total <= sku.getReorderPoint()) {
+            if (!reorderAlertRepository.existsBySkuIdAndStatus(sku.getId(), "OPEN")) {
+                reorderAlertRepository.save(ReorderAlert.builder()
+                        .sku(sku)
+                        .currentQuantity(total)
+                        .reorderPoint(sku.getReorderPoint())
+                        .status("OPEN") // Explicitly set status , it's already defaulted to "OPEN" in the entity, but being explicit here for clarity
+                        .build());
+
+                eventPublisher.publishAlert(WarehouseEvent.of(
+                    "REORDER_ALERT", sku.getSkuCode(), "OPEN", "SYSTEM", "INVENTORY"
+                ));
+            }
+        }
+    }
+
+    /* -------------------------------------------------------------------------
+     * Helper method to auto-resolve open reorder alerts upon stock replenishment.
+     * Checks if total stock has recovered above the SKU's reorder point and
+     * updates any existing OPEN alert to RESOLVED status while publishing an event.
+     * ------------------------------------------------------------------------- */
+    private void checkAndResolveReorderAlert(Sku sku) {
+        Integer total = skuLocationRepository.getTotalQuantityBySkuId(sku.getId());
+
+        if (total != null && total > sku.getReorderPoint()) {
+            reorderAlertRepository.findBySkuIdAndStatus(sku.getId(), "OPEN")
+                    .ifPresent(alert -> {
+                        alert.setStatus("RESOLVED");
+                        reorderAlertRepository.save(alert);
+
+                        eventPublisher.publishAlert(WarehouseEvent.of(
+                                "REORDER_ALERT",
+                                sku.getSkuCode(),
+                                "RESOLVED",
+                                "SYSTEM",
+                                "INVENTORY"
+                        ));
+                    });
+        }
     }
 
     /* -------------------------------------------------------------------------
@@ -215,7 +254,7 @@ public class StockService {
 
         location.setQuantity(location.getQuantity() + quantity);
         skuLocationRepository.save(location);
-
+        checkAndResolveReorderAlert(sku);                                    
         stockMovementRepository.save(StockMovement.builder()
                 .sku(sku)
                 .shelf(shelf)
