@@ -93,6 +93,26 @@ public class PickListService {
         return buildPickListResponse(pickList);
     }
 
+    /* ----- Get all Pick Lists ----- */
+    /**
+     * Returns all pick lists, optionally filtered by status.
+     * Manager-facing oversight query — distinct from getByWorker(), which
+     * scopes results to a single picker's assigned lists.
+     *
+     * @param status optional status filter; if null, returns all pick lists.
+     * @return list of pick lists matching the filter, each with its items.
+     */
+    @Transactional(readOnly = true)
+    public List<PickListResponse> getAll(PickListStatus status) {
+        List<PickList> pickLists = (status != null)
+                ? pickListRepository.findByStatus(status)
+                : pickListRepository.findAll();
+
+        return pickLists.stream()
+                .map(this::buildPickListResponse) // reuse whatever conversion helper you already have for getById/getByWorker
+                .toList();
+    }
+
     /* ----- Get Pick Lists By Worker ----- */
     /**
      * Returns all pick lists assigned to a specific worker.

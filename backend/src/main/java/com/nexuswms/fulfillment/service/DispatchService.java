@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -105,6 +106,41 @@ public class DispatchService {
         return ShipmentResponse.from(shipment);
     }
 
+    /* ----- Get All Shipments ----- */
+    /**
+     * Returns all shipments, optionally filtered by status.
+     * Manager-facing oversight query — distinct from getByParcel(), which
+     * scopes to a single parcel's shipment.
+     *
+     * @param status optional status filter; if null, returns all shipments.
+     * @return list of shipments matching the filter, as response DTOs
+     */
+    @Transactional(readOnly = true)
+    public List<ShipmentResponse> getAll(ShipmentStatus status) {
+        List<Shipment> shipments = (status != null)
+                ? shipmentRepository.findByStatus(status)
+                : shipmentRepository.findAll();
+
+        return shipments.stream()
+                .map(ShipmentResponse::from)
+                .toList();
+    }
+
+    /* ----- Get Shipment By ID ----- */
+    /**
+     * Returns a single shipment by its own UUID.
+     *
+     * @param id the UUID of the shipment
+     * @return the shipment as a response DTO
+     * @throws ResourceNotFoundException if no shipment exists with the given id
+     */
+    @Transactional(readOnly = true)
+    public ShipmentResponse getById(UUID id) {
+        Shipment shipment = shipmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment not found with id: " + id));
+        return ShipmentResponse.from(shipment);
+    }
+    
     /* ----- Private Helpers ----- */
 
     /**

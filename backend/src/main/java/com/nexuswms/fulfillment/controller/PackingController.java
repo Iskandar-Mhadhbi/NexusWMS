@@ -3,6 +3,7 @@ package com.nexuswms.fulfillment.controller;
 import com.nexuswms.fulfillment.dto.request.PackingCompleteRequest;
 import com.nexuswms.fulfillment.dto.response.PackingTaskResponse;
 import com.nexuswms.fulfillment.dto.response.ParcelResponse;
+import com.nexuswms.fulfillment.entity.PackingTaskStatus;
 import com.nexuswms.fulfillment.service.PackingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse; 
@@ -32,6 +33,23 @@ import java.util.UUID;
 public class PackingController {
 
     private final PackingService packingService;
+
+	/**
+	 * Returns all packing tasks, optionally filtered by status.
+	 * Manager-facing oversight — distinct from GET /my, which is worker-scoped.
+	 *
+	 * @param status optional status filter (PENDING, IN_PROGRESS, COMPLETED).
+	 * @return 200 OK with all matching packing tasks.
+	 */
+	@Operation(summary = "Get all packing tasks (manager oversight)")
+	@ApiResponse(responseCode = "200", description = "Packing tasks retrieved successfully")
+	@GetMapping
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+	public ResponseEntity<List<PackingTaskResponse>> getAll(
+			@RequestParam(required = false) PackingTaskStatus status
+	) {
+		return ResponseEntity.ok(packingService.getAll(status));
+	}
 
     /**
      * Creates a packing task from a completed pick list and assigns it to a packer.

@@ -159,6 +159,26 @@ public class PackingService {
             return ParcelResponse.from(parcel);
         }
 
+    /* ----- Get All Tasks ----- */
+    /**
+     * Returns all packing tasks, optionally filtered by status.
+     * Manager-facing oversight query — distinct from getByWorker(), which
+     * scopes results to a single packer's assigned tasks.
+     *
+     * @param status optional status filter; if null, returns all packing tasks.
+     * @return list of packing tasks matching the filter.
+     */
+    @Transactional(readOnly = true)
+    public List<PackingTaskResponse> getAll(PackingTaskStatus status) {
+        List<PackingTask> tasks = (status != null)
+                ? packingTaskRepository.findByStatus(status)
+                : packingTaskRepository.findAll();
+
+        return tasks.stream()
+                .map(PackingTaskResponse::from) // reuse whichever conversion method getByWorker/completeTask already use
+                .toList();
+    }
+       
     /* ----- Get Tasks By Worker ----- */
     /**
      * Returns all packing tasks assigned to a specific worker.

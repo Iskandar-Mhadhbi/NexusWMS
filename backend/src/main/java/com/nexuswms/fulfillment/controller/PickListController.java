@@ -3,6 +3,7 @@ package com.nexuswms.fulfillment.controller;
 import com.nexuswms.fulfillment.dto.request.PickItemRequest;
 import com.nexuswms.fulfillment.dto.response.PickListItemResponse;
 import com.nexuswms.fulfillment.dto.response.PickListResponse;
+import com.nexuswms.fulfillment.entity.PickListStatus;
 import com.nexuswms.fulfillment.service.PickListService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse; 
@@ -61,6 +62,23 @@ public class PickListController {
     }
 
     /**
+     * Returns all pick lists, optionally filtered by status.
+     * Manager-facing oversight — distinct from GET /my, which is worker-scoped.
+     *
+     * @param status optional status filter (GENERATED, IN_PROGRESS, COMPLETED).
+     * @return 200 OK with all matching pick lists and their items.
+     */
+    @Operation(summary = "Get all pick lists (manager oversight)")
+    @ApiResponse(responseCode = "200", description = "Pick lists retrieved successfully")
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<List<PickListResponse>> getAll(
+            @RequestParam(required = false) PickListStatus status
+    ) {
+        return ResponseEntity.ok(pickListService.getAll(status));
+    }
+
+    /**
      * Returns all pick lists assigned to the currently authenticated picker.
      *
      * @param principalUserId UUID of the authenticated picker extracted from the JWT.
@@ -84,7 +102,7 @@ public class PickListController {
      */
     @Operation(summary = "Get pick list by ID")
     @ApiResponse(responseCode = "200", description = "Pick list retrieved successfully") 
-    @GetMapping("/{id}")
+    @GetMapping("/pick-lists/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'PICKER')")
     public ResponseEntity<PickListResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(pickListService.getById(id));
