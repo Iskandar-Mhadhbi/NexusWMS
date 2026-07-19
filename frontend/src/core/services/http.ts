@@ -1,0 +1,27 @@
+import axios from 'axios';
+import { tokenService } from './tokenService';
+
+const http = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+});
+
+http.interceptors.request.use((config) => {
+  const token = tokenService.get();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      tokenService.clear();
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default http;

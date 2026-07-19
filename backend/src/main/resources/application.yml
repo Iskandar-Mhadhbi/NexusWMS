@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: nexuswms
+  profiles:
+    active: dev
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+info:
+  app:
+    name: NexusWMS
+    version: 0.1.0
+    
