@@ -34,3 +34,29 @@ export interface PickList {
   completedAt: string | null;
   items: PickListItem[];
 }
+
+export interface PickListItemResponse {
+  id: string;
+  orderLineId: string;
+  skuId: string;
+  skuCode: string;
+  skuName: string;
+  shelfId: string;
+  shelfCode: string;
+  quantityToPick: number;
+  quantityPicked: number;
+  batchId: string | null;
+  status: PickListItemStatus;
+  pickedAt: string | null; // ISO timestamp
+}
+
+export interface PickListResponse {
+  id: string;
+  fulfillmentRequestId: string;
+  assignedTo: string;       // worker UUID
+  status: PickListStatus;
+  generatedBy: string | null;
+  generatedAt: string;      // ISO timestamp
+  completedAt: string | null;
+  items: PickListItemResponse[];
+}

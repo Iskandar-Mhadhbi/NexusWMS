@@ -19,7 +19,7 @@ const operateItems: NavItem[] = [
   { routeName: 'live-ops', label: 'Live ops', domainVar: '--domain-live-ops' },
   { routeName: 'procurement-suppliers', label: 'Procurement', domainVar: '--domain-procurement' },
   { routeName: 'inventory-skus', label: 'Inventory', domainVar: '--domain-inventory' },
-  { routeName: 'fulfillment', label: 'Fulfillment', domainVar: '--domain-fulfillment' },
+  { routeName: 'fulfillment-orders', label: 'Fulfillment', domainVar: '--domain-fulfillment' },
 ];
 
 const manageItems: NavItem[] = [

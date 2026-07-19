@@ -9,6 +9,7 @@
 import type { RouteRecordRaw } from 'vue-router';
 import { procurementRoutes } from './procurementRoutes';
 import { inventoryRoutes } from './inventoryRoutes';
+import { fulfillmentRoutes } from './fulfillmentRoutes';
 
 export const MANAGER_ROLES = ['ADMIN', 'MANAGER', 'FINANCE', 'INVENTORY_CONTROLLER'];
 
@@ -30,7 +31,12 @@ export const managerRoutes: RouteRecordRaw = {
       meta: { domain: 'inventory' },
       children: inventoryRoutes,
     },
-    { path: 'fulfillment', name: 'fulfillment', component: () => import('@/features/fulfillment/FulfillmentView.vue'), meta: { domain: 'fulfillment' } },
+    {
+      path: 'fulfillment',
+      component: () => import('@/features/fulfillment/FulfillmentShell.vue'),
+      meta: { domain: 'fulfillment' },
+      children: fulfillmentRoutes,
+    },
     { path: 'reports', name: 'reports', component: () => import('@/features/reports/ReportsView.vue'), meta: { domain: 'reports' } },
     { path: 'finance', name: 'finance', component: () => import('@/features/finance/FinanceView.vue'), meta: { domain: 'finance' } },
     { path: 'employees', name: 'employees', component: () => import('@/features/employees/EmployeesView.vue'), meta: { domain: 'employees' } },

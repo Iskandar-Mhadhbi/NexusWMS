@@ -32,3 +32,17 @@ export interface ParcelSummary {
   trackingNumber: string;
   barcode: string;
 }
+
+
+export interface PackingTaskResponse {
+  id: string;
+  pickListId: string;
+  assignedTo: string;
+  startedBy: string | null;
+  stationId: string | null;
+  status: PackingTaskStatus;
+  startedAt: string | null;
+  completedAt: string | null;
+  parcelId: string | null;        // set once completed
+  trackingNumber: string | null;  // set once completed, if response includes nested parcel
+}
