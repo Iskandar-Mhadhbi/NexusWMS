@@ -38,7 +38,7 @@ export const managerRoutes: RouteRecordRaw = {
       children: fulfillmentRoutes,
     },
     { path: 'reports', name: 'reports', component: () => import('@/features/reports/ReportsView.vue'), meta: { domain: 'reports' } },
-    { path: 'finance', name: 'finance', component: () => import('@/features/finance/FinanceView.vue'), meta: { domain: 'finance' } },
+    { path: 'finance', name: 'finance', component: () => import('@/features/finance/InvoicesView.vue'), meta: { domain: 'finance' } },
     { path: 'employees', name: 'employees', component: () => import('@/features/employees/EmployeesView.vue'), meta: { domain: 'employees' } },
   ],
 };

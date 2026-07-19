@@ -21,3 +21,19 @@ export interface AuthResponse {
   role: Role;
   status: UserStatus;
 }
+
+export interface UserResponse {
+  employeeId: string;
+  email: string;
+  name: string;
+  role: Role;
+  status: UserStatus;
+}
+
+export interface UpdateStatusRequest {
+  status: UserStatus;
+}
+
+export interface UpdateRoleRequest {
+  role: Role;
+}
