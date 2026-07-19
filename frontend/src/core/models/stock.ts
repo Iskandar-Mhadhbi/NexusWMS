@@ -14,6 +14,8 @@
  * Confirm against a real response before trusting anything beyond the
  * table's own columns.
  */
+import { z } from 'zod';
+
 
 /** One row of the stock summary — GET /api/v1/stock */
 export interface StockSummary {
@@ -53,4 +55,33 @@ export interface ReorderAlert {
   reorderPoint: number;
   status: string;
   createdAt: string;
+}
+
+/**
+ * POST /api/v1/stock/adjust body.
+ * Mirrors StockAdjustmentRequest.java: skuId/shelfId required, quantity
+ * is a signed integer (positive = increase, negative = decrease, zero
+ * rejected — matches StockService.adjustStock()'s own IllegalArgumentException
+ * check), batchId optional, reason maps to the backend's `notes` field.
+ */
+export const AdjustStockSchema = z.object({
+  skuId: z.uuid(),
+  shelfId: z.uuid(),
+  quantity: z
+    .number({ error: 'Quantity is required' })
+    .int('Quantity must be a whole number')
+    .refine((n) => n !== 0, 'Quantity cannot be zero'),
+  batchId: z.string().trim().nullable(),
+  reason: z.string().trim().min(1, 'A reason is required for every adjustment'),
+});
+export type AdjustStockPayload = z.infer<typeof AdjustStockSchema>;
+
+export function buildAdjustStockSchema(maxDecrease: number) {
+  return AdjustStockSchema.extend({
+    quantity: z
+      .number({ error: 'Quantity is required' })
+      .int('Quantity must be a whole number')
+      .refine((n) => n !== 0, 'Quantity cannot be zero')
+      .refine((n) => n >= -maxDecrease, `Cannot remove more than the ${maxDecrease} units currently at this location`),
+  });
 }

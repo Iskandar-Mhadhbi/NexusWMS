@@ -1,41 +1,147 @@
 <!--
-  StockView.vue
-  Inventory → Stock tab. Read-only pass: stock levels table + open reorder
-  alerts. Adjustment (POST /stock/adjust) is deliberately deferred until a
-  real shelf picker exists — this view has no write actions.
+  StockView.vue — Inventory → Stock tab.
+  Now includes: read-only levels + reorder alerts (as before), PLUS
+  stock adjustment — quick inline adjust on existing locations, and a
+  cascading zone -> aisle -> shelf picker for placing stock on a shelf
+  the SKU doesn't already occupy.
 
-  Row click expands an inline panel with the SKU's per-shelf/batch location
-  breakdown, cached in stockStore after first fetch. No modal/drawer
-  component exists yet in this codebase, so this uses a plain expand-in-
-  place row rather than introducing new shared UI unprompted.
+  Cascading picker (not a flat all-shelves list): reuses zoneStore's
+  existing per-zone lazy-fetch exactly as-is. Chosen deliberately over
+  eager-loading every zone on form-open, which would fire one network
+  call per zone every time the form opens — fine at 6 zones, a real
+  scaling problem at real warehouse size. The cascading picker only
+  ever fetches one zone's data at a time, flat regardless of warehouse
+  size, and needs zero new backend work.
 
-  Styling matches SkusView.vue conventions exactly: no flex utility
-  classes (display/flex-direction/etc. written out per-element in SCSS),
-  var(--domain-inventory) / var(--domain-danger) for accents, 0.5px
-  borders, unitless px sizes.
+  Both adjustment paths validate via AdjustStockSchema before sending —
+  same standard established in ZonesView.vue.
 -->
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useStockStore } from '@/stores/stockStore';
+import { useZoneStore } from '@/stores/zoneStore';
+import { AdjustStockSchema, buildAdjustStockSchema } from '@/core/models/stock';
 
 const store = useStockStore();
+const zoneStore = useZoneStore();
 
-/** skuId of the currently expanded row, or null if none expanded. */
 const expandedSkuId = ref<string | null>(null);
+const submitError = ref('');
+
+/** Quick-adjust: which existing location row has its inline form open (by SkuLocation.id). */
+const quickAdjustLocationId = ref<string | null>(null);
+const quickAdjustForm = ref<{ quantity: number | null; reason: string }>({ quantity: null, reason: '' });
+
+/** New-shelf placement: whether the picker+form is open for the currently expanded SKU. */
+const showNewShelfForm = ref(false);
+/** Cascading picker state — null until a level is chosen. */
+const pickerZoneId = ref<string | null>(null);
+const pickerAisleId = ref<string | null>(null);
+const pickerShelfId = ref<string | null>(null);
+const newShelfForm = ref<{ quantity: number | null; batchId: string; reason: string }>({
+  quantity: null, batchId: '', reason: '',
+});
 
 onMounted(() => {
   store.fetchLevels();
   store.fetchReorderAlerts();
+  zoneStore.fetchZones(); // needed for the picker's first level (zone select)
 });
 
-/** Toggle a row's expanded state; lazy-loads its locations on first open. */
 function toggleRow(skuId: string) {
   if (expandedSkuId.value === skuId) {
     expandedSkuId.value = null;
+    closeAllAdjustForms();
     return;
   }
   expandedSkuId.value = skuId;
   store.fetchLocations(skuId);
+  closeAllAdjustForms();
+}
+
+function closeAllAdjustForms() {
+  quickAdjustLocationId.value = null;
+  showNewShelfForm.value = false;
+  pickerZoneId.value = null;
+  pickerAisleId.value = null;
+  pickerShelfId.value = null;
+}
+
+/** Opens the quick-adjust inline form for one existing location row. */
+function openQuickAdjust(locationId: string) {
+  quickAdjustLocationId.value = quickAdjustLocationId.value === locationId ? null : locationId;
+  quickAdjustForm.value = { quantity: null, reason: '' };
+  submitError.value = '';
+}
+
+// StockView.vue — handleQuickAdjust 
+async function handleQuickAdjust(skuId: string, shelfId: string, batchId: string | null, currentQty: number) {
+  submitError.value = '';
+  const schema = buildAdjustStockSchema(currentQty);
+  const result = schema.safeParse({
+    skuId, shelfId, quantity: quickAdjustForm.value.quantity, batchId, reason: quickAdjustForm.value.reason,
+  });
+  if (!result.success) {
+    submitError.value = result.error.issues[0].message;
+    return;
+  }
+  try {
+    await store.adjustStock(skuId, result.data);
+    quickAdjustLocationId.value = null;
+  } catch (err) {
+    submitError.value = 'Could not adjust stock — the server rejected the request.';
+    console.error('[StockView] quick adjust failed:', err);
+  }
+}
+
+/** Picker: when a zone is chosen, fetch its detail (aisles + shelves) and reset deeper selections. */
+function selectPickerZone(zoneId: string) {
+  pickerZoneId.value = zoneId;
+  pickerAisleId.value = null;
+  pickerShelfId.value = null;
+  zoneStore.fetchZoneDetail(zoneId);
+}
+
+function selectPickerAisle(aisleId: string) {
+  pickerAisleId.value = aisleId;
+  pickerShelfId.value = null;
+}
+
+/** Shelves for the currently picked zone+aisle, via zoneStore's existing grouping getter. */
+const pickerShelves = computed(() => {
+  if (!pickerZoneId.value || !pickerAisleId.value) return [];
+  return zoneStore.shelvesByAisle(pickerZoneId.value)[pickerAisleId.value] ?? [];
+});
+
+/** Submits stock placement onto a shelf chosen via the cascading picker. */
+async function handleNewShelfPlacement(skuId: string) {
+  submitError.value = '';
+  if (!pickerShelfId.value) {
+    submitError.value = 'Select a shelf first';
+    return;
+  }
+  const result = AdjustStockSchema.safeParse({
+    skuId,
+    shelfId: pickerShelfId.value,
+    quantity: newShelfForm.value.quantity,
+    batchId: newShelfForm.value.batchId.trim() || null,
+    reason: newShelfForm.value.reason,
+  });
+  if (!result.success) {
+    submitError.value = result.error.issues[0].message;
+    return;
+  }
+  try {
+    await store.adjustStock(skuId, result.data);
+    showNewShelfForm.value = false;
+    pickerZoneId.value = null;
+    pickerAisleId.value = null;
+    pickerShelfId.value = null;
+    newShelfForm.value = { quantity: null, batchId: '', reason: '' };
+  } catch (err) {
+    submitError.value = 'Could not place stock — the server rejected the request.';
+    console.error('[StockView] new shelf placement failed:', err);
+  }
 }
 </script>
 
@@ -48,7 +154,6 @@ function toggleRow(skuId: string) {
       </span>
     </div>
 
-    <!-- Reorder alerts -->
     <div v-if="store.reorderAlertsEnriched.length > 0" class="reorder-alerts">
       <h2 class="reorder-alerts__title">Open Reorder Alerts</h2>
       <div class="reorder-alerts__list">
@@ -60,8 +165,8 @@ function toggleRow(skuId: string) {
       </div>
     </div>
 
+    <p v-if="submitError" class="stock__error">{{ submitError }}</p>
     <p v-if="store.error" class="stock__error">{{ store.error }}</p>
-
     <p v-if="store.loadingLevels" class="stock__meta">Loading stock levels…</p>
 
     <div v-else class="stock__list">
@@ -89,23 +194,89 @@ function toggleRow(skuId: string) {
           </span>
         </div>
 
-        <!-- Expanded location breakdown -->
         <div v-if="expandedSkuId === row.skuId" class="location-panel">
           <p v-if="store.loadingLocations && !store.locationsBySku[row.skuId]" class="location-panel__meta">
             Loading locations…
           </p>
-          <div v-for="loc in store.locationsBySku[row.skuId] ?? []" :key="loc.id" class="location-panel__row">
+
+          <div
+            v-for="loc in store.locationsBySku[row.skuId] ?? []"
+            :key="loc.id"
+            class="location-panel__row"
+          >
             <span class="location-panel__shelf">{{ loc.shelfCode ?? loc.shelfId }}</span>
             <span class="location-panel__qty">Qty {{ loc.quantity }} (reserved {{ loc.reservedQuantity }})</span>
             <span v-if="loc.batchId" class="location-panel__batch">{{ loc.batchId }}</span>
             <span v-if="loc.expiryDate" class="location-panel__expiry">exp. {{ loc.expiryDate }}</span>
+            <button class="location-panel__adjust-btn" @click.stop="openQuickAdjust(loc.id)">
+              {{ quickAdjustLocationId === loc.id ? 'Cancel' : 'Adjust' }}
+            </button>
           </div>
-          <p
-            v-if="(store.locationsBySku[row.skuId] ?? []).length === 0 && !store.loadingLocations"
-            class="location-panel__meta"
+
+          <form
+            v-if="quickAdjustLocationId"
+            class="adjust-form" 
+              @submit.prevent="
+                handleQuickAdjust(
+                  row.skuId,
+                  (store.locationsBySku[row.skuId] ?? []).find((l) => l.id === quickAdjustLocationId)!.shelfId,
+                  (store.locationsBySku[row.skuId] ?? []).find((l) => l.id === quickAdjustLocationId)!.batchId,
+                  (store.locationsBySku[row.skuId] ?? []).find((l) => l.id === quickAdjustLocationId)!.quantity
+                )
+              "
           >
+            <input
+              v-model.number="quickAdjustForm.quantity"
+              type="number"
+              :placeholder="`Quantity (+/-, max removal: ${(store.locationsBySku[row.skuId] ?? []).find((l) => l.id === quickAdjustLocationId)?.quantity ?? 0})`"
+            />
+            <input v-model="quickAdjustForm.reason" placeholder="Reason (e.g. damage, restock, count correction)" />
+            <button type="submit">Confirm adjustment</button>
+          </form>
+
+          <p v-if="(store.locationsBySku[row.skuId] ?? []).length === 0 && !store.loadingLocations" class="location-panel__meta">
             No locations found for this SKU.
           </p>
+
+          <button class="location-panel__new-shelf-btn" @click.stop="showNewShelfForm = !showNewShelfForm">
+            {{ showNewShelfForm ? 'Cancel' : '+ Place stock on a new shelf' }}
+          </button>
+
+          <div v-if="showNewShelfForm" class="new-shelf-picker">
+            <div class="new-shelf-picker__level">
+              <label class="new-shelf-picker__label">Zone</label>
+              <select :value="pickerZoneId" @change="selectPickerZone(($event.target as HTMLSelectElement).value)">
+                <option value="" disabled selected>Select a zone…</option>
+                <option v-for="z in zoneStore.zones" :key="z.id" :value="z.id">{{ z.name }}</option>
+              </select>
+            </div>
+
+            <div v-if="pickerZoneId" class="new-shelf-picker__level">
+              <label class="new-shelf-picker__label">Aisle</label>
+              <p v-if="zoneStore.loadingAisles" class="location-panel__meta">Loading aisles…</p>
+              <select v-else :value="pickerAisleId" @change="selectPickerAisle(($event.target as HTMLSelectElement).value)">
+                <option value="" disabled selected>Select an aisle…</option>
+                <option v-for="a in zoneStore.aislesByZone[pickerZoneId] ?? []" :key="a.id" :value="a.id">{{ a.code }}</option>
+              </select>
+            </div>
+
+            <div v-if="pickerAisleId" class="new-shelf-picker__level">
+              <label class="new-shelf-picker__label">Shelf</label>
+              <select v-model="pickerShelfId">
+                <option value="" disabled selected>Select a shelf…</option>
+                <option v-for="s in pickerShelves" :key="s.id" :value="s.id">
+                  {{ s.code }} (level {{ s.level }}, {{ s.currentWeight }}/{{ s.maxWeight ?? '∞' }} kg)
+                </option>
+              </select>
+            </div>
+
+            <form v-if="pickerShelfId" class="adjust-form" @submit.prevent="handleNewShelfPlacement(row.skuId)">
+              <input v-model.number="newShelfForm.quantity" type="number" min="1" placeholder="Quantity to place" />
+              <input v-model="newShelfForm.batchId" placeholder="Batch ID (optional)" />
+              <input v-model="newShelfForm.reason" placeholder="Reason (e.g. goods receipt correction, restock)" />
+              <button type="submit">Confirm placement</button>
+            </form>
+          </div>
         </div>
       </template>
 
@@ -294,8 +465,8 @@ function toggleRow(skuId: string) {
 .location-panel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 14px 10px 32px;
+  gap: 8px;
+  padding: 10px 14px 12px 32px;
   background: var(--surface-0);
   border: 0.5px solid var(--border);
   border-radius: 8px;
@@ -331,5 +502,90 @@ function toggleRow(skuId: string) {
 .location-panel__expiry {
   color: var(--text-muted);
   font-size: 12px;
+}
+
+.location-panel__adjust-btn {
+  margin-left: auto;
+  background: none;
+  border: 0.5px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.location-panel__new-shelf-btn {
+  align-self: flex-start;
+  background: none;
+  border: 0.5px dashed var(--domain-inventory);
+  color: var(--domain-inventory);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.adjust-form {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding: 8px;
+  background: var(--surface-1);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+
+  input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--surface-0);
+    color: var(--text-primary);
+  }
+
+  button {
+    background: var(--domain-inventory);
+    color: var(--surface-1);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+}
+
+.new-shelf-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background: var(--surface-1);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+
+  &__level {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+
+  select {
+    padding: 6px 8px;
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--surface-0);
+    color: var(--text-primary);
+  }
 }
 </style>

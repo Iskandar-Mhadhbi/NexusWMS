@@ -8,7 +8,7 @@
  * movement history wasn't in scope for the read-only pass.
  */
 import http from '@/core/services/http';
-import type { StockSummary, SkuLocation, ReorderAlert } from '@/core/models/stock';
+import type { StockSummary, SkuLocation, ReorderAlert, AdjustStockPayload } from '@/core/models/stock';
 
 export const stockService = {
   /** Fetch the aggregated stock summary across all SKUs. */
@@ -26,6 +26,11 @@ export const stockService = {
   /** Fetch all currently open reorder alerts. */
   async getReorderAlerts(): Promise<ReorderAlert[]> {
     const { data } = await http.get<ReorderAlert[]>('/stock/alerts/reorder');
+    return data;
+  },
+
+  async adjustStock(payload: AdjustStockPayload): Promise<SkuLocation> {
+    const { data } = await http.post<SkuLocation>('/stock/adjust', payload);
     return data;
   },
 };

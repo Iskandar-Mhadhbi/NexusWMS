@@ -14,6 +14,7 @@ import com.nexuswms.inventory.entity.Shelf;
 import com.nexuswms.inventory.entity.Sku;
 import com.nexuswms.inventory.entity.SkuLocation;
 import com.nexuswms.inventory.entity.StockMovement;
+import com.nexuswms.inventory.entity.Zone;
 import com.nexuswms.inventory.repository.ReorderAlertRepository;
 import com.nexuswms.inventory.repository.ShelfRepository;
 import com.nexuswms.inventory.repository.SkuLocationRepository;
@@ -21,6 +22,7 @@ import com.nexuswms.inventory.repository.SkuRepository;
 import com.nexuswms.inventory.repository.StockMovementRepository;
 import com.nexuswms.user.entity.User;
 import com.nexuswms.user.repository.UserRepository;
+import com.nexuswms.inventory.repository.ZoneRepository; 
 
 import lombok.RequiredArgsConstructor;
 
@@ -42,6 +44,7 @@ public class StockService {
     private final UserRepository userRepository;
     private final StockMovementRepository stockMovementRepository;
     private final WarehouseEventPublisher eventPublisher; 
+    private final ZoneRepository zoneRepository;
     /* -------------------------------------------------------------------------
      * GET /stock
      * Returns a stock summary for every SKU in the system.
@@ -119,6 +122,8 @@ public class StockService {
 
         location.setQuantity(newQuantity);
         skuLocationRepository.save(location);
+
+        updateZoneOccupancy(shelf, request.quantity());
 
         stockMovementRepository.save(StockMovement.builder()
                 .sku(sku)
@@ -254,6 +259,7 @@ public class StockService {
 
         location.setQuantity(location.getQuantity() + quantity);
         skuLocationRepository.save(location);
+        updateZoneOccupancy(shelf, quantity);
         checkAndResolveReorderAlert(sku);                                    
         stockMovementRepository.save(StockMovement.builder()
                 .sku(sku)
@@ -266,6 +272,20 @@ public class StockService {
                 .notes(notes)
                 .build());
     }
+
+    /* -------------------------------------------------------------------------
+        * Helper method to keep Zone.currentOccupancy in sync with actual stock.
+        * Called from adjustStock() and adjustFromGoodsReceipt() — the two places
+        * where a shelf's stock quantity changes. Walks shelf -> aisle -> zone and
+        * applies the same signed delta that was just applied to the SkuLocation,
+        * in the same transaction, so occupancy can never drift out of sync with
+        * a partially-completed adjustment.
+        * ------------------------------------------------------------------------- */
+        private void updateZoneOccupancy(Shelf shelf, int delta) {
+        Zone zone = shelf.getAisle().getZone();
+        zone.setCurrentOccupancy(zone.getCurrentOccupancy() + delta);
+        zoneRepository.save(zone);
+        }
 
     /* ----- Find Available Location For SKU ----- */
         /**

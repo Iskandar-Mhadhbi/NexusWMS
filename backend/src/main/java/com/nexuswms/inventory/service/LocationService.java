@@ -97,11 +97,12 @@ public class LocationService {
 
     @Transactional
     public ShelfResponse createShelf(ShelfRequest request) {
-        if (shelfRepository.existsByAisleIdAndCode(request.aisleId(), request.code())) {
-            throw new ConflictException("Shelf code already exists in aisle " + request.aisleId() + ": " + request.code());
-        }
+
         Aisle aisle = aisleRepository.findById(request.aisleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Aisle", request.aisleId().toString()));
+        if (shelfRepository.existsByAisleIdAndCode(aisle.getId(), request.code())) {
+            throw new ConflictException("Shelf code already exists in aisle " + aisle.getId() + ": " + request.code());
+        }
 
         Shelf shelf = Shelf.builder()
                 .aisle(aisle)

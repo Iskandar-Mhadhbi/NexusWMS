@@ -7,7 +7,7 @@
  */
 import { defineStore } from 'pinia';
 import { stockService } from '@/features/inventory/services/stockService';
-import type { StockSummary, SkuLocation, ReorderAlert } from '@/core/models/stock';
+import type { StockSummary, SkuLocation, ReorderAlert, AdjustStockPayload } from '@/core/models/stock';
 
 interface ReorderAlertEnriched extends ReorderAlert {
   skuCode: string | null;
@@ -90,6 +90,26 @@ export const useStockStore = defineStore('stock', {
         console.error(err);
       } finally {
         this.loadingLocations = false;
+      }
+    },
+
+    /**
+     * Adjusts stock for a SKU at a shelf, then refreshes both the summary
+     * table and that SKU's cached location breakdown so the UI reflects the
+     * new quantity immediately — no full page reload needed.
+     */
+    async adjustStock(skuId: string, payload: AdjustStockPayload) {
+      this.error = null;
+      try {
+        await stockService.adjustStock(payload);
+        await this.fetchLevels();
+        delete this.locationsBySku[skuId]; // force a fresh fetch, drop the stale cache
+        await this.fetchLocations(skuId);
+        await this.fetchReorderAlerts(); // an adjustment can open or resolve an alert
+      } catch (err) {
+        this.error = 'Failed to adjust stock.';
+        console.error(err);
+        throw err; // re-throw so the calling form can show its own message too
       }
     },
   },
