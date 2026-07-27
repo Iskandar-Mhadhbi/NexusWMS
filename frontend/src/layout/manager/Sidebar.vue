@@ -23,7 +23,7 @@ const operateItems: NavItem[] = [
 ];
 
 const manageItems: NavItem[] = [
-  { routeName: 'reports', label: 'Reports', domainVar: '--domain-reports' },
+  { routeName: 'reports-daily', label: 'Reports', domainVar: '--domain-reports' },
   { routeName: 'finance', label: 'Finance', domainVar: '--domain-finance' },
   { routeName: 'employees', label: 'Employees', domainVar: '--domain-employees' },
 ];
