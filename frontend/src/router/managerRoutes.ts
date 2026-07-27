@@ -10,6 +10,7 @@ import type { RouteRecordRaw } from 'vue-router';
 import { procurementRoutes } from './procurementRoutes';
 import { inventoryRoutes } from './inventoryRoutes';
 import { fulfillmentRoutes } from './fulfillmentRoutes';
+import { reportsRoutes } from './reportsRoutes';
 
 export const MANAGER_ROLES = ['ADMIN', 'MANAGER', 'FINANCE', 'INVENTORY_CONTROLLER'];
 
@@ -37,7 +38,12 @@ export const managerRoutes: RouteRecordRaw = {
       meta: { domain: 'fulfillment' },
       children: fulfillmentRoutes,
     },
-    { path: 'reports', name: 'reports', component: () => import('@/features/reports/ReportsView.vue'), meta: { domain: 'reports' } },
+    {
+      path: 'reports',
+      component: () => import('@/features/reports/ReportsShell.vue'),
+      meta: { domain: 'reports' },
+      children: reportsRoutes,
+    },
     { path: 'finance', name: 'finance', component: () => import('@/features/finance/InvoicesView.vue'), meta: { domain: 'finance' } },
     { path: 'employees', name: 'employees', component: () => import('@/features/employees/EmployeesView.vue'), meta: { domain: 'employees' } },
   ],
