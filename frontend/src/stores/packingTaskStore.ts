@@ -4,7 +4,7 @@
  * pickListStore.ts's shape for consistency across worker terminals.
  */
 import { defineStore } from 'pinia';
-import { packingTaskService } from '@/features/packer/services/packingTaskService';
+import { packingTaskService, type CompletePackingTaskPayload } from '@/features/packer/services/packingTaskService';
 import type { PackingTask, ParcelSummary } from '@/core/models/packingTask';
 
 export const usePackingTaskStore = defineStore('packingTask', {
@@ -48,19 +48,19 @@ export const usePackingTaskStore = defineStore('packingTask', {
     },
 
     /**
-     * Transitions the task IN_PROGRESS -> COMPLETED. Handles the Parcel
-     * response defensively — see complete()'s type comment for why.
+     * Transitions the task IN_PROGRESS -> COMPLETED. The backend response
+     * is a Parcel, not a PackingTask (confirmed against PackingService.
+     * completeTask()'s real return type) — so the task itself is marked
+     * COMPLETED locally rather than overwritten with parcel data.
      */
-    async complete() {
+    async complete(payload: CompletePackingTaskPayload) {
       if (!this.task) return;
       this.submitting = true;
       this.error = null;
       try {
-        const { data } = await packingTaskService.complete(this.task.id);
-        this.task = data;
-        if (data.parcel) {
-          this.completedParcel = data.parcel;
-        }
+        const { data } = await packingTaskService.complete(this.task.id, payload);
+        this.completedParcel = data;
+        this.task = { ...this.task, status: 'COMPLETED' };
       } catch (err) {
         this.error = 'Could not confirm pack — try again.';
         console.error('[packingTaskStore] complete failed:', err);
