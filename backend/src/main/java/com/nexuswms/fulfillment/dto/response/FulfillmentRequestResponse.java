@@ -11,6 +11,7 @@ public record FulfillmentRequestResponse(
     UUID id,
     UUID orderId,
     String orderNumber,
+    UUID generatedBy,
     String assignedZone,
     FulfillmentStatus status,
     LocalDateTime createdAt
@@ -20,6 +21,7 @@ public record FulfillmentRequestResponse(
                 fr.getId(),
                 fr.getOrder().getId(),
                 fr.getOrder().getOrderNumber(),
+                fr.getGeneratedBy(),
                 fr.getAssignedZone(),
                 fr.getStatus(),
                 fr.getCreatedAt()

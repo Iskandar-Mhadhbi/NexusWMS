@@ -5,6 +5,12 @@
   a real SKU picker would live) isn't built yet — see
   phase7_frontend_design.md §10. Revisit once Inventory/sku-management
   exists.
+
+  requestedBy/approvedBy are enriched UserSummary objects (actor
+  enrichment pass, see actor_field_enrichment_progress.md) — displayed by
+  employeeId, the human-readable identifier convention used everywhere
+  else in this app. supplierName now comes directly from the backend DTO,
+  so the old local lookup-by-id helper was removed.
 -->
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
@@ -72,11 +78,6 @@ async function handleApprove(id: string) {
     approvingId.value = null;
   }
 }
-
-/** @returns the supplier's display name for a given supplierId, or the raw id if not found. */
-function supplierName(supplierId: string): string {
-  return supplierStore.suppliers.find((s) => s.id === supplierId)?.name ?? supplierId;
-}
 </script>
 
 <template>
@@ -116,7 +117,11 @@ function supplierName(supplierId: string): string {
     <div v-else class="pos__list">
       <div v-for="po in store.purchaseOrders" :key="po.id" class="po-row">
         <span class="po-row__number">{{ po.poNumber }}</span>
-        <span class="po-row__supplier">{{ supplierName(po.supplierId) }}</span>
+        <span class="po-row__supplier">{{ po.supplierName }}</span>
+        <span class="po-row__actor">
+          Requested by {{ po.requestedBy?.employeeId ?? '—' }}
+          <template v-if="po.approvedBy"> · Approved by {{ po.approvedBy.employeeId }}</template>
+        </span>
         <span class="po-row__total">${{ po.totalAmount.toFixed(2) }}</span>
         <span class="po-row__status" :class="`po-row__status--${po.status.toLowerCase()}`">
           {{ po.status }}
@@ -283,6 +288,12 @@ function supplierName(supplierId: string): string {
   font-size: 14px;
   color: var(--text-primary);
   flex: 1;
+}
+
+.po-row__actor {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .po-row__total {

@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface PickListItemRepository extends JpaRepository<PickListItem, UUID> {
     List<PickListItem> findByPickList_Id(UUID pickListId);
     List<PickListItem> findByPickList_IdAndStatus(UUID pickListId, PickListItemStatus status);
+    List<PickListItem> findByPickList_IdIn(List<UUID> pickListIds);
 }

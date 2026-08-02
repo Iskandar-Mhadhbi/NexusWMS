@@ -12,4 +12,5 @@ public interface PackingTaskRepository extends JpaRepository<PackingTask, UUID> 
     List<PackingTask> findByAssignedTo(UUID workerId);
     List<PackingTask> findByStatus(PackingTaskStatus status);
     List<PackingTask> findByPickList_Id(UUID pickListId);
+    boolean existsByTaskNumber(String taskNumber);
 }

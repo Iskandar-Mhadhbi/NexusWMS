@@ -57,9 +57,10 @@ onMounted(applyFilter);
           <td class="dispatch-view__mono">{{ s.parcelTrackingNumber }}</td>
           <td>{{ s.carrierName }}</td>
           <td class="dispatch-view__mono">{{ s.carrierTrackingNumber }}</td>
-          <td class="dispatch-view__mono">{{ s.dispatchedBy?.slice(0, 8) ?? '—' }}</td>
+          <td>{{ s.dispatchedBy?.employeeId ?? '—' }}</td>
           <td>{{ formatDate(s.dispatchedAt) }}</td>
-          <td>{{ formatDate(s.estimatedDelivery) }}</td> 
+          <td>{{ formatDate(s.estimatedDelivery) }}</td>
+          <td class="dispatch-view__mono">{{ s.status }}</td>
         </tr>
       </tbody>
     </table>

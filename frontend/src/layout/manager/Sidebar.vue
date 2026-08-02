@@ -5,31 +5,39 @@
     - Manage:  back-office pillars (reports, finance, employees)
   Active route gets a tinted background, domain-colored text, and a dot.
 -->
-<script setup lang="ts">
+<script setup lang="ts"> 
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'vue-router';
 
 interface NavItem {
-  routeName: string;
+  path: string;
+  domain: string;
   label: string;
   domainVar: string;
 }
 
 const operateItems: NavItem[] = [
-  { routeName: 'live-ops', label: 'Live ops', domainVar: '--domain-live-ops' },
-  { routeName: 'procurement-suppliers', label: 'Procurement', domainVar: '--domain-procurement' },
-  { routeName: 'inventory-skus', label: 'Inventory', domainVar: '--domain-inventory' },
-  { routeName: 'fulfillment-orders', label: 'Fulfillment', domainVar: '--domain-fulfillment' },
+  { path: '/', domain: 'live-ops', label: 'Live ops', domainVar: '--domain-live-ops' },
+  { path: '/procurement', domain: 'procurement', label: 'Procurement', domainVar: '--domain-procurement' },
+  { path: '/inventory', domain: 'inventory', label: 'Inventory', domainVar: '--domain-inventory' },
+  { path: '/fulfillment', domain: 'fulfillment', label: 'Fulfillment', domainVar: '--domain-fulfillment' },
 ];
 
 const manageItems: NavItem[] = [
-  { routeName: 'reports-daily', label: 'Reports', domainVar: '--domain-reports' },
-  { routeName: 'finance', label: 'Finance', domainVar: '--domain-finance' },
-  { routeName: 'employees', label: 'Employees', domainVar: '--domain-employees' },
+  { path: '/reports', domain: 'reports', label: 'Reports', domainVar: '--domain-reports' },
+  { path: '/finance', domain: 'finance', label: 'Finance', domainVar: '--domain-finance' },
+  { path: '/employees', domain: 'employees', label: 'Employees', domainVar: '--domain-employees' },
 ];
 
+const route = useRoute();
 const auth = useAuthStore();
 const router = useRouter();
+
+/** Whether the current route belongs to the given pillar's domain, per meta.domain — not path prefix matching, so live-ops ('/') doesn't falsely match every other route. */
+function isActive(domain: string): boolean {
+  return route.matched.some((r) => r.meta.domain === domain);
+}
 
 /** Logs the current user out and returns to the login screen. */
 function handleLogout() {
@@ -46,10 +54,10 @@ function handleLogout() {
       <span class="sidebar__group-label">Operate</span>
       <RouterLink
         v-for="item in operateItems"
-        :key="item.routeName"
-        :to="{ name: item.routeName }"
+        :key="item.domain"
+        :to="item.path"
         class="sidebar__item"
-        active-class="sidebar__item--active"
+        :class="{ 'sidebar__item--active': isActive(item.domain) }"
         :style="{ '--item-color': `var(${item.domainVar})` }"
       >
         <span class="sidebar__dot"></span>
@@ -61,10 +69,10 @@ function handleLogout() {
       <span class="sidebar__group-label">Manage</span>
       <RouterLink
         v-for="item in manageItems"
-        :key="item.routeName"
-        :to="{ name: item.routeName }"
+        :key="item.domain"
+        :to="item.path"
         class="sidebar__item"
-        active-class="sidebar__item--active"
+        :class="{ 'sidebar__item--active': isActive(item.domain) }"
         :style="{ '--item-color': `var(${item.domainVar})` }"
       >
         <span class="sidebar__dot"></span>

@@ -1,10 +1,18 @@
 /**
  * Order domain models. Fields confirmed against real OrderResponse.java
- * (id, orderNumber, customerName, customerAddress, status, priority, notes,
- * lines, totalAmount, createdAt, updatedAt). OrderLine.lineTotal matches
- * the same computed-field convention already used by PurchaseOrderLineResponse.
+ * (id, createdBy, orderNumber, customerName, customerAddress, status,
+ * priority, notes, lines, totalAmount, createdAt, updatedAt).
+ * OrderLine.lineTotal matches the same computed-field convention already
+ * used by PurchaseOrderLineResponse. skuCode/skuName enrichment on
+ * OrderLine confirmed against OrderService.enrichAndConvertToResponse(),
+ * which resolves both from a batched SKU lookup before building the
+ * response — no longer a guess.
+ *
+ * createdBy is an enriched UserSummary object (actor enrichment pass, see
+ * actor_field_enrichment_progress.md), not a raw UUID.
  */
 import { z } from 'zod';
+import type { UserSummary } from './user';
 
 export type OrderStatus = 'RECEIVED' | 'VALIDATED' | 'PICKING' | 'PACKING' | 'DISPATCHED' | 'CANCELLED';
 export type OrderPriority = 'STANDARD' | 'EXPRESS' | 'URGENT';
@@ -12,7 +20,7 @@ export type OrderPriority = 'STANDARD' | 'EXPRESS' | 'URGENT';
 export interface OrderLine {
   id: string;
   skuId: string;
-  skuCode: string | null; // TODO: unconfirmed whether OrderLineResponse enriches this
+  skuCode: string | null;
   skuName: string | null;
   quantityOrdered: number;
   quantityPicked: number;
@@ -24,6 +32,7 @@ export interface OrderLine {
 
 export interface Order {
   id: string;
+  createdBy: UserSummary;
   orderNumber: string;
   customerName: string;
   customerAddress: Record<string, unknown> | null;

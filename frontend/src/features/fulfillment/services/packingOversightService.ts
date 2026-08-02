@@ -9,17 +9,17 @@
  */
 
 import http  from '@/core/services/http';
-import type { PackingTaskResponse, PackingTaskStatus } from '@/core/models/packingTask';
+import type { PackingTask, PackingTaskStatus } from '@/core/models/packingTask';
 
 export const packingOversightService = {
-  async getAll(status?: PackingTaskStatus): Promise<PackingTaskResponse[]> {
+  async getAll(status?: PackingTaskStatus): Promise<PackingTask[]> {
     const params = status ? { status } : undefined;
-    const { data } = await http.get<PackingTaskResponse[]>('/packing-tasks', { params });
+    const { data } = await http.get<PackingTask[]>('/packing-tasks', { params });
     return data;
   },
 
-  async getById(id: string): Promise<PackingTaskResponse> {
-    const { data } = await http.get<PackingTaskResponse>(`/packing-tasks/${id}`);
+  async getById(id: string): Promise<PackingTask> {
+    const { data } = await http.get<PackingTask>(`/packing-tasks/${id}`);
     return data;
   },
 };

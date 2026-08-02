@@ -1,6 +1,7 @@
 package com.nexuswms.procurement.dto.response;
 
 import com.nexuswms.procurement.entity.PurchaseOrderStatus;
+import com.nexuswms.user.dto.response.UserSummaryResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,8 +14,8 @@ public record PurchaseOrderResponse(
     String poNumber,
     UUID supplierId,
     String supplierName,
-    UUID requestedBy,
-    UUID approvedBy,
+    UserSummaryResponse requestedBy,
+    UserSummaryResponse approvedBy,
     PurchaseOrderStatus status,
     LocalDate expectedDelivery,
     BigDecimal totalAmount,

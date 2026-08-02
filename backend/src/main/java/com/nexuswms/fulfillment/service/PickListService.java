@@ -10,6 +10,8 @@ import com.nexuswms.fulfillment.dto.response.PickListResponse;
 import com.nexuswms.fulfillment.entity.*;
 import com.nexuswms.fulfillment.repository.*;
 import com.nexuswms.inventory.service.StockService;
+import com.nexuswms.user.dto.response.UserSummaryResponse;
+import com.nexuswms.user.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,8 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +37,7 @@ public class PickListService {
     private final OrderRepository orderRepository;  
     private final StockService stockService;
     private final WarehouseEventPublisher eventPublisher;
+    private final UserService userService;
 
     /* ----- Generate Pick List ----- */
     /**
@@ -88,9 +95,22 @@ public class PickListService {
         fulfillmentRequestRepository.save(fr);
 
         fr.getOrder().setStatus(OrderStatus.PICKING);
+
         orderRepository.save(fr.getOrder());
 
-        return buildPickListResponse(pickList);
+        List<PickListItemResponse> items = pickListItemRepository
+                    .findByPickList_Id(pickList.getId()).stream().map(PickListItemResponse::from).toList();
+
+        Map<UUID, UserSummaryResponse> userMap = userService.getUserSummaries(
+            Stream.of(generatedBy, assignedTo).filter(Objects::nonNull).collect(Collectors.toSet())
+        );
+
+        return PickListResponse.from(
+            pickList,
+            items,
+            userMap.get(generatedBy),
+            userMap.get(assignedTo)
+        );
     }
 
     /* ----- Get all Pick Lists ----- */
@@ -108,9 +128,35 @@ public class PickListService {
                 ? pickListRepository.findByStatus(status)
                 : pickListRepository.findAll();
 
+        if (pickLists.isEmpty()) return List.of();
+
+        // ---- batch-load items  ----
+        List<UUID> pickListIds = pickLists.stream().map(pl -> pl.getId()).toList();
+        Map<UUID, List<PickListItemResponse>> itemsMap = pickListItemRepository
+                .findByPickList_IdIn(pickListIds).stream()
+                .collect(Collectors.groupingBy(
+                    item -> item.getPickList().getId(),
+                    Collectors.mapping(PickListItemResponse::from, Collectors.toList())
+                ));
+
+        // ---- collect all unique user IDs ----
+        Set<UUID> allUserIds = pickLists.stream()
+                .flatMap(pl -> Stream.of(pl.getGeneratedBy(), pl.getAssignedTo()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // ---- ONE batch call to the user service ----
+        Map<UUID, UserSummaryResponse> userMap = userService.getUserSummaries(allUserIds);
+
+        // ---- assemble responses with full user info ----
         return pickLists.stream()
-                .map(this::buildPickListResponse) // reuse whatever conversion helper you already have for getById/getByWorker
-                .toList();
+                        .map(pl -> PickListResponse.from(
+                            pl,
+                            itemsMap.getOrDefault(pl.getId(), List.of()),
+                            userMap.get(pl.getGeneratedBy()),
+                            userMap.get(pl.getAssignedTo())
+                        ))
+                        .toList();
     }
 
     /* ----- Get Pick Lists By Worker ----- */
@@ -122,9 +168,33 @@ public class PickListService {
      */
     @Transactional(readOnly = true)
     public List<PickListResponse> getByWorker(UUID workerId) {
-        return pickListRepository.findByAssignedTo(workerId).stream()
-                .map(this::buildPickListResponse)
-                .collect(Collectors.toList());
+        List<PickList> pickLists = pickListRepository.findByAssignedTo(workerId);
+        if (pickLists.isEmpty()) return List.of();
+
+        // batch items
+        List<UUID> pickListIds = pickLists.stream().map(pl -> pl.getId()).toList();
+        Map<UUID, List<PickListItemResponse>> itemsMap = pickListItemRepository
+                .findByPickList_IdIn(pickListIds).stream()
+                .collect(Collectors.groupingBy(
+                    item -> item.getPickList().getId(),
+                    Collectors.mapping(PickListItemResponse::from, Collectors.toList())
+                ));
+
+        // batch users (assignedTo is always workerId, but generatedBy may vary)
+        Set<UUID> userIds = pickLists.stream()
+                .flatMap(pl -> Stream.of(pl.getGeneratedBy(), pl.getAssignedTo()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, UserSummaryResponse> userMap = userService.getUserSummaries(userIds);
+
+        return pickLists.stream()
+                .map(pl -> PickListResponse.from(
+                    pl,
+                    itemsMap.getOrDefault(pl.getId(), List.of()),
+                    userMap.get(pl.getGeneratedBy()),
+                    userMap.get(pl.getAssignedTo())
+                ))
+                .toList();
     }
 
     /* ----- Get Pick List By ID ----- */
@@ -139,7 +209,25 @@ public class PickListService {
     public PickListResponse getById(UUID id) {
         PickList pickList = pickListRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pick list not found with id: " + id));
-        return buildPickListResponse(pickList);
+
+        // items for this one pick list (could also use the same batch pattern, but single query is fine)
+        List<PickListItemResponse> items = pickListItemRepository
+                .findByPickList_Id(id).stream()
+                .map(PickListItemResponse::from)
+                .toList();
+
+        // user summaries for the two user IDs
+        Set<UUID> userIds = Stream.of(pickList.getGeneratedBy(), pickList.getAssignedTo())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, UserSummaryResponse> userMap = userService.getUserSummaries(userIds);
+
+        return PickListResponse.from(
+            pickList,
+            items,
+            userMap.get(pickList.getGeneratedBy()),
+            userMap.get(pickList.getAssignedTo())
+        );
     }
 
     /* ----- Pick Item ----- */
@@ -218,14 +306,5 @@ public class PickListService {
         }
     }
 
-    /**
-     * Builds a PickListResponse by loading items for the given pick list.
-     */
-    private PickListResponse buildPickListResponse(PickList pickList) {
-        List<PickListItemResponse> items = pickListItemRepository
-                .findByPickList_Id(pickList.getId()).stream()
-                .map(PickListItemResponse::from)
-                .collect(Collectors.toList());
-        return PickListResponse.from(pickList, items);
-    }
+   
 }

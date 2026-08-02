@@ -7,6 +7,7 @@ import com.nexuswms.config.AppProperties;
 import com.nexuswms.user.dto.request.UpdateRoleRequest;
 import com.nexuswms.user.dto.request.UpdateStatusRequest;
 import com.nexuswms.user.dto.response.UserResponse;
+import com.nexuswms.user.dto.response.UserSummaryResponse;
 import com.nexuswms.user.entity.User;
 import com.nexuswms.user.entity.UserStatus;
 import com.nexuswms.user.repository.UserRepository;
@@ -16,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.UUID;
-
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID; 
+import java.util.stream.Collectors; 
 /**
  * Service responsible for user profile and administration operations.
  *
@@ -127,5 +130,19 @@ public class UserService {
         userRepository.save(user);
 
         return UserResponse.from(user);
+    }
+
+    
+    /**
+     * Returns user summaries for the given IDs in a single query.
+     * IDs that don’t match any user are silently ignored.
+     */
+    public Map<UUID, UserSummaryResponse> getUserSummaries(Set<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllByIdIn(ids).stream()
+                .map(UserSummaryResponse::from)
+                .collect(Collectors.toMap(r -> r.id(),r -> r ));
     }
 }

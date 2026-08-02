@@ -14,4 +14,5 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
     Optional<Shipment> findByParcel_Id(UUID parcelId);
     List<Shipment> findByCarrier_Id(UUID carrierId);
     List<Shipment> findByStatus(ShipmentStatus status);
+    boolean existsByCarrierTrackingNumber(String carrierTrackingNumber);
 }

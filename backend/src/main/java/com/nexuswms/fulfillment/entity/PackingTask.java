@@ -25,6 +25,9 @@ public class PackingTask {
     @JoinColumn(name = "pick_list_id", nullable = false)
     private PickList pickList;
 
+    @Column(name = "task_number", nullable = false, unique = true, updatable = false)
+    private String taskNumber;
+
     /* Cross-package: user context — UUID only */
     @Column(name = "created_by", nullable = false, updatable = false)
     private UUID createdBy;

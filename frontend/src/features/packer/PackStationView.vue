@@ -6,20 +6,35 @@
   per-item loop like picking, since packing consolidates an already-picked
   list into one parcel in a single action.
 
-  This is also the future attach point for the weigh-checkpoint reading
-  (phase7_frontend_design.md §3.3) once that backend work exists — the
-  "Confirm pack" action below is exactly where a measured-weight capture
-  would be added.
+  weightKg is collected via a plain input before "Confirm pack" — required
+  by the real PackingCompleteRequest payload (confirmed against Parcel.java:
+  weightKg is BigDecimal, dimensions is a free-form JSONB Map). dimensions
+  itself is deferred to {} here, same pattern already established for
+  Order.customerAddress/Sku.dimensions — a flexible JSONB field with no
+  confirmed sub-shape, not worth guessing at.
+
+  This is also the future attach point for the full weigh-checkpoint
+  reading (phase7_frontend_design.md §3.3, idea-only/not built) once that
+  backend work exists — the weight input below is the minimal version;
+  the real sensor-driven capture would replace it, not add to it.
 -->
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { usePackingTaskStore } from '@/stores/packingTaskStore';
 import { useAuthStore } from '@/stores/authStore';
 
 const store = usePackingTaskStore();
 const auth = useAuthStore();
 
+const weightKg = ref<number | null>(null);
+
 onMounted(() => store.load());
+
+/** Confirms the pack, sending the collected weight and an empty dimensions object. */
+async function handleComplete() {
+  if (weightKg.value == null) return;
+  await store.complete({ weightKg: weightKg.value, dimensions: {} });
+}
 </script>
 
 <template>
@@ -48,6 +63,19 @@ onMounted(() => store.load());
           <span class="pack-terminal__task-status">{{ store.task.status }}</span>
         </div>
 
+        <div v-if="store.task.status === 'IN_PROGRESS'" class="pack-terminal__weight">
+          <label class="pack-terminal__card-label" for="weightKg">Weight (kg)</label>
+          <input
+            id="weightKg"
+            v-model.number="weightKg"
+            type="number"
+            min="0"
+            step="0.001"
+            placeholder="0.000"
+            class="pack-terminal__weight-input"
+          />
+        </div>
+
         <p v-if="store.error" class="pack-terminal__error">{{ store.error }}</p>
 
         <button
@@ -62,8 +90,8 @@ onMounted(() => store.load());
         <button
           v-else-if="store.task.status === 'IN_PROGRESS'"
           class="pack-terminal__confirm"
-          :disabled="store.submitting"
-          @click="store.complete"
+          :disabled="store.submitting || weightKg == null"
+          @click="handleComplete"
         >
           {{ store.submitting ? 'Confirming…' : 'Confirm pack' }}
         </button>
@@ -166,6 +194,25 @@ onMounted(() => store.load());
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.pack-terminal__weight {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface-1);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.pack-terminal__weight-input {
+  padding: 10px;
+  border-radius: 8px;
+  border: 0.5px solid var(--border);
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
 }
 
 .pack-terminal__error {

@@ -1,15 +1,18 @@
 /**
  * purchaseOrder.ts
  * Frontend mirror of com.nexuswms.procurement.dto.response.PurchaseOrderResponse
- * / PurchaseOrderLineResponse and the matching Request DTOs (see
- * phase3_progress.md).
+ * / PurchaseOrderLineResponse and the matching Request DTOs.
  *
- * NOTE: field names are taken from phase3_progress.md's DTO summary, not
- * the actual Java source. In particular, whether PurchaseOrderLineResponse
- * includes an enriched skuCode (via PurchaseOrderService's SkuService
- * lookup) is inferred, not confirmed — treated as optional here; the view
- * falls back to the raw skuId if it's absent.
+ * Confirmed against the real Java source (PurchaseOrderService.java,
+ * PurchaseOrderResponse.java) — the earlier note about inferred field
+ * names no longer applies.
+ *
+ * requestedBy/approvedBy are enriched UserSummary objects, not raw UUIDs
+ * — part of the actor-enrichment pass (see actor_field_enrichment_progress.md).
+ * approvedBy is null until the PO is actually approved.
  */
+import type { UserSummary } from './user';
+
 export type PurchaseOrderStatus =
   | 'DRAFT'
   | 'PENDING_APPROVAL'
@@ -21,10 +24,7 @@ export type PurchaseOrderStatus =
 export type PurchaseOrderLineStatus = 'PENDING' | 'PARTIALLY_RECEIVED' | 'FULLY_RECEIVED';
 
 export interface PurchaseOrderLine {
-  id: string; // ADDED — needed as goods-receipt's poLineId reference.
-              // Very likely correct (every persisted entity in this system
-              // exposes its id in the response DTO), but not confirmed
-              // against the real PurchaseOrderLineResponse source.
+  id: string;
   skuId: string;
   skuCode?: string;
   quantityOrdered: number;
@@ -38,6 +38,9 @@ export interface PurchaseOrder {
   id: string;
   poNumber: string;
   supplierId: string;
+  supplierName: string;
+  requestedBy: UserSummary;
+  approvedBy: UserSummary | null;
   status: PurchaseOrderStatus;
   expectedDelivery: string | null;
   totalAmount: number;

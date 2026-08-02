@@ -1,8 +1,8 @@
-// ShipmentResponse.java
 package com.nexuswms.fulfillment.dto.response;
 
 import com.nexuswms.fulfillment.entity.Shipment;
 import com.nexuswms.fulfillment.entity.ShipmentStatus;
+import com.nexuswms.user.dto.response.UserSummaryResponse;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,12 +16,12 @@ public record ShipmentResponse(
     String carrierName,
     String carrierCode,
     String carrierTrackingNumber,
-    UUID dispatchedBy,
+    UserSummaryResponse dispatchedBy,
     LocalDateTime dispatchedAt,
     LocalDate estimatedDelivery,
     ShipmentStatus status
 ) {
-    public static ShipmentResponse from(Shipment shipment) {
+    public static ShipmentResponse from(Shipment shipment, UserSummaryResponse dispatchedBy) {
         return new ShipmentResponse(
                 shipment.getId(),
                 shipment.getParcel().getId(),
@@ -30,7 +30,7 @@ public record ShipmentResponse(
                 shipment.getCarrier().getName(),
                 shipment.getCarrier().getCode(),
                 shipment.getCarrierTrackingNumber(),
-                shipment.getDispatchedBy(),
+                dispatchedBy,
                 shipment.getDispatchedAt(),
                 shipment.getEstimatedDelivery(),
                 shipment.getStatus()
