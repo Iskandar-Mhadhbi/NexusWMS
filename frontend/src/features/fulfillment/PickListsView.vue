@@ -49,7 +49,8 @@ onMounted(applyFilter);
     >
       <div class="pick-lists-view__row-header flex-row" @click="toggleExpand(pl.id)">
         <span class="pick-lists-view__id">{{ pl.id.slice(0, 8) }}</span>
-        <span class="pick-lists-view__assigned">{{ pl.assignedTo.slice(0, 8) }}</span> 
+        <span class="pick-lists-view__assigned">{{ pl.assignedTo.employeeId }}</span>
+        <span class="pick-lists-view__generated-by" v-if="pl.generatedBy">by {{ pl.generatedBy.employeeId }}</span>
         <span class="pick-lists-view__count">{{ pl.items.length }} items</span>
       </div>
 
@@ -61,7 +62,7 @@ onMounted(applyFilter);
         >
           <span class="pick-lists-view__shelf">{{ item.shelfCode }}</span>
           <span class="pick-lists-view__sku">{{ item.skuCode }}</span>
-          <span class="pick-lists-view__qty">{{ item.quantityPicked }} / {{ item.quantityToPick }}</span> 
+          <span class="pick-lists-view__qty">{{ item.quantityPicked }} / {{ item.quantityToPick }}</span>
         </div>
       </div>
     </div>
@@ -81,6 +82,11 @@ onMounted(applyFilter);
   &__toolbar {
     justify-content: flex-start;
   }
+
+  &__generated-by {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
 
   &__filter {
     padding: 0.4rem 0.6rem;

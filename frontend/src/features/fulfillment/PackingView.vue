@@ -37,21 +37,20 @@ onMounted(applyFilter);
     <table v-else class="packing-view__table">
       <thead>
         <tr>
-          <th>Task</th>
+          <th>Task #</th>
           <th>Pick list</th>
           <th>Assigned</th>
           <th>Started by</th>
           <th>Status</th>
-          <th>Tracking #</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="task in store.tasks" :key="task.id">
-          <td class="packing-view__mono">{{ task.id.slice(0, 8) }}</td>
+          <td class="packing-view__mono">{{ task.taskNumber }}</td>
           <td class="packing-view__mono">{{ task.pickListId.slice(0, 8) }}</td>
-          <td class="packing-view__mono">{{ task.assignedTo.slice(0, 8) }}</td>
-          <td class="packing-view__mono">{{ task.startedBy?.slice(0, 8) ?? '—' }}</td> 
-          <td class="packing-view__mono">{{ task.trackingNumber ?? '—' }}</td>
+          <td>{{ task.assignedTo.employeeId }}</td>
+          <td>{{ task.startedBy?.employeeId ?? '—' }}</td>
+          <td class="packing-view__mono">{{ task.status }}</td>
         </tr>
       </tbody>
     </table>
