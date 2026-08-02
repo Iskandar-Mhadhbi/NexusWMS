@@ -1,48 +1,44 @@
 /**
  * packingTask.ts
- * Frontend mirror of the PackingTask domain object (com.nexuswms.fulfillment)
- * — see phase4/5/8_progress.md. startedBy was added in Phase 8 alongside
- * assignedTo, to distinguish who was scheduled vs who actually did the work.
+ * Frontend mirror of com.nexuswms.fulfillment.dto.response.PackingTaskResponse.
+ * Previously split into PackingTask/PackingTaskResponse with drifting
+ * field sets — merged into one canonical shape, matching the single-type
+ * convention used elsewhere.
  *
- * NOTE: PackingTaskResponse's exact full field list was never fully
- * enumerated in the phase docs (only "startedBy field added" is confirmed
- * from phase8_progress.md) — fields beyond that are reasonable inference,
- * not confirmed source.
+ * CORRECTION: parcelId/trackingNumber were previously (incorrectly)
+ * speculated as fields on this response. Confirmed against real backend
+ * source: POST /packing-tasks/{id}/complete returns a separate
+ * ParcelResponse object entirely — PackingTaskResponse never carries
+ * parcel data, nested or flat. Removed. Use ParcelSummary (below) as its
+ * own response type instead.
+ *
+ * assignedTo/startedBy are enriched UserSummary objects (actor enrichment
+ * pass, see actor_field_enrichment_progress.md), not raw UUIDs.
  */
+import type { UserSummary } from './user';
+
 export type PackingTaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
 
 export interface PackingTask {
   id: string;
   pickListId: string;
-  assignedTo: string;
+  taskNumber: string;
+  assignedTo: UserSummary;
+  startedBy: UserSummary | null;
+  stationId: string | null;
+  stationCode: string | null;
   status: PackingTaskStatus;
   startedAt: string | null;
-  startedBy: string | null;
   completedAt: string | null;
 }
 
 /**
- * Minimal shape of the Parcel created on task completion. Whether
- * POST /packing-tasks/{id}/complete actually returns this nested, returns
- * it as a flat sibling, or doesn't return it at all is unconfirmed — the
- * store handles all three gracefully (see packingTaskStore.ts).
+ * Shape returned by POST /packing-tasks/{id}/complete — a Parcel, not a
+ * PackingTask. Confirmed against real ParcelResponse.from() usage in
+ * PackingService.completeTask().
  */
 export interface ParcelSummary {
   id: string;
   trackingNumber: string;
   barcode: string;
-}
-
-
-export interface PackingTaskResponse {
-  id: string;
-  pickListId: string;
-  assignedTo: string;
-  startedBy: string | null;
-  stationId: string | null;
-  status: PackingTaskStatus;
-  startedAt: string | null;
-  completedAt: string | null;
-  parcelId: string | null;        // set once completed
-  trackingNumber: string | null;  // set once completed, if response includes nested parcel
 }

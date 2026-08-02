@@ -1,13 +1,21 @@
 /**
  * pickList.ts
  * Frontend mirror of com.nexuswms.fulfillment.dto.response.PickListResponse
- * / PickListItemResponse (see phase4_progress.md).
+ * / PickListItemResponse. Previously split into two near-duplicate type
+ * pairs (PickList/PickListItem vs PickListResponse/PickListItemResponse)
+ * with no actual reason for the split — no Zod schema ever consumed one
+ * over the other. Merged into one canonical shape per entity, matching
+ * the single-type convention used by Order/PurchaseOrder/Shipment.
  *
- * NOTE: skuCode on PickListItem is inferred, not confirmed against real
- * source — phase4_progress.md says the response "includes shelf location
- * info" but doesn't give an exact field list. If the terminal shows a raw
- * UUID instead of a SKU code, this is the field to check first.
+ * generatedBy/assignedTo are enriched UserSummary objects (actor
+ * enrichment pass, see actor_field_enrichment_progress.md), not raw UUIDs.
+ *
+ * NOTE: skuCode/skuName on PickListItem remain unconfirmed against real
+ * PickListItemResponse source — carried forward from the original file,
+ * still genuinely unverified, not resolved by this merge.
  */
+import type { UserSummary } from './user';
+
 export type PickListStatus = 'GENERATED' | 'IN_PROGRESS' | 'COMPLETED';
 export type PickListItemStatus = 'PENDING' | 'PICKED' | 'SKIPPED';
 
@@ -16,11 +24,12 @@ export interface PickListItem {
   orderLineId: string;
   skuId: string;
   skuCode?: string;
+  skuName?: string;
   shelfId: string;
   shelfCode: string;
   quantityToPick: number;
   quantityPicked: number;
-  batchId?: string;
+  batchId?: string | null;
   status: PickListItemStatus;
   pickedAt: string | null;
 }
@@ -28,35 +37,10 @@ export interface PickListItem {
 export interface PickList {
   id: string;
   fulfillmentRequestId: string;
-  assignedTo: string;
+  generatedBy: UserSummary | null;
+  assignedTo: UserSummary;
   status: PickListStatus;
   generatedAt: string;
   completedAt: string | null;
   items: PickListItem[];
-}
-
-export interface PickListItemResponse {
-  id: string;
-  orderLineId: string;
-  skuId: string;
-  skuCode: string;
-  skuName: string;
-  shelfId: string;
-  shelfCode: string;
-  quantityToPick: number;
-  quantityPicked: number;
-  batchId: string | null;
-  status: PickListItemStatus;
-  pickedAt: string | null; // ISO timestamp
-}
-
-export interface PickListResponse {
-  id: string;
-  fulfillmentRequestId: string;
-  assignedTo: string;       // worker UUID
-  status: PickListStatus;
-  generatedBy: string | null;
-  generatedAt: string;      // ISO timestamp
-  completedAt: string | null;
-  items: PickListItemResponse[];
 }
