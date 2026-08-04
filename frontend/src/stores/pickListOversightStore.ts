@@ -7,10 +7,10 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { pickListOversightService } from '@/features/fulfillment/services/pickListOversightService';
-import type { PickListResponse, PickListStatus } from '@/core/models/pickList';
+import type { PickList, PickListStatus } from '@/core/models/pickList';
 
 export const usePickListOversightStore = defineStore('pickListOversight', () => {
-  const pickLists = ref<PickListResponse[]>([]);
+  const pickLists = ref<PickList[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
