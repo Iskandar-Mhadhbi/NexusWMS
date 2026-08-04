@@ -14,9 +14,13 @@ const store = usePickListOversightStore();
 const statusFilter = ref<PickListStatus | 'ALL'>('ALL');
 const expandedId = ref<string | null>(null);
 
-/** Reload the list whenever the status filter changes. */
+/** Reload the list whenever the status filter changes. Store already surfaces failures via store.error for display — swallow the re-thrown rejection here since this component has no further action to take on failure. */
 async function applyFilter() {
-  await store.fetchAll(statusFilter.value === 'ALL' ? undefined : statusFilter.value);
+  try {
+    await store.fetchAll(statusFilter.value === 'ALL' ? undefined : statusFilter.value);
+  } catch {
+    // Intentionally empty — store.error is already set and rendered.
+  }
 }
 
 /** Toggle a row's item detail open/closed. */

@@ -7,10 +7,10 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { packingOversightService } from '@/features/fulfillment/services/packingOversightService';
-import type { PackingTaskResponse, PackingTaskStatus } from '@/core/models/packingTask';
+import type { PackingTask, PackingTaskStatus } from '@/core/models/packingTask';
 
 export const usePackingOversightStore = defineStore('packingOversight', () => {
-  const tasks = ref<PackingTaskResponse[]>([]);
+  const tasks = ref<PackingTask[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
