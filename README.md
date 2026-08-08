@@ -1,6 +1,6 @@
  # NexusWMS
 
-**A full-stack warehouse management system simulating a real e-commerce fulfillment center** — supplier receiving, inventory storage, order picking, packing, and carrier dispatch, with a live operations dashboard powered by WebSocket + Redis pub/sub.
+**A full-stack warehouse management system simulating a real e-commerce fulfillment center**. It covers supplier receiving, inventory storage, order picking, packing, and carrier dispatch. A live operations dashboard uses WebSocket and Redis pub/sub.
 
 ![Java](https://img.shields.io/badge/Java-21-red?logo=openjdk)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-brightgreen?logo=springboot)
@@ -12,7 +12,7 @@
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-> One warehouse. One distribution zone. Every package traceable, every action logged, every worker role modeled — built to demonstrate production-grade engineering patterns across a polyglot stack, not to cut corners for a portfolio demo.
+> One warehouse. One distribution zone. Every package is traceable. Every action is logged. Every worker role is modeled. The system uses production‑grade engineering patterns across a polyglot stack. It is not a simplified portfolio demo.
 
 ---
 
@@ -34,9 +34,9 @@ NexusWMS manages the complete lifecycle of a physical order:
 Supplier → Goods Receipt → Shelf Storage → Pick List → Packing → Carrier Dispatch
 ```
 
-Eight role-based actors (Admin, Manager, Receiver, Picker, Packer, Dispatcher, Inventory Controller, Finance) each see a purpose-built interface — manager-facing oversight dashboards on one side, single-task dark-mode worker terminals on the other — all backed by the same real-time event pipeline.
+Eight role‑based actors use the system: Admin, Manager, Receiver, Picker, Packer, Dispatcher, Inventory Controller, and Finance. Each sees an interface that fits their job. Managers get data‑dense oversight dashboards. Workers use dark‑mode, single‑task terminals. All views run on the same real‑time event pipeline.
 
-**Why this project exists:** to demonstrate enterprise Java (Spring Boot 4), Python analytics (FastAPI + scikit-learn), polyglot persistence (PostgreSQL + MongoDB + Redis), real-time systems (WebSocket/STOMP + Redis pub/sub), and a genuine CI/CD pipeline — in one coherent system with a real business story, not eight disconnected toy demos.
+**Why this project exists:** It shows enterprise Java (Spring Boot 4), Python analytics (FastAPI + scikit‑learn), polyglot persistence (PostgreSQL + MongoDB + Redis), real‑time systems (WebSocket/STOMP + Redis pub/sub), and a real CI/CD pipeline. All these parts fit together in one system with a true business story, not in separate toy demos.
 
 <details>
 <summary><b>The golden path, end to end</b></summary>
@@ -128,11 +128,11 @@ Cross-context communication rule, enforced throughout: **same package → JPA re
 <details>
 <summary><b>Database responsibilities</b></summary>
 
-**PostgreSQL 16** — source of truth for everything transactional: users, SKUs, zones/aisles/shelves, orders, pick lists, packing tasks, parcels, shipments, purchase orders, goods receipts, invoices. UUID primary keys, VARCHAR enums (no `ALTER TYPE` friction), JSONB for flexible fields (SKU dimensions, customer address), Flyway-only schema changes.
+**PostgreSQL 16** : source of truth for everything transactional: users, SKUs, zones/aisles/shelves, orders, pick lists, packing tasks, parcels, shipments, purchase orders, goods receipts, invoices. UUID primary keys, VARCHAR enums (no `ALTER TYPE` friction), JSONB for flexible fields (SKU dimensions, customer address), Flyway-only schema changes.
 
-**MongoDB 7** — high-volume append-only audit trail where schema genuinely varies: `scan_logs`, `order_events`, `PackingTaskEvent`. A receiving scan and a dispatch scan have different fields; forcing that into nullable Postgres columns would be worse than a flexible document.
+**MongoDB 7** : high-volume append-only audit trail where schema genuinely varies: `scan_logs`, `order_events`, `PackingTaskEvent`. A receiving scan and a dispatch scan have different fields; forcing that into nullable Postgres columns would be worse than a flexible document.
 
-**Redis 7** — JWT blocklist (`blocklist:user:{userId}`, TTL = remaining token lifetime, gives immediate revocation with zero maintenance job), live dashboard cache, and pub/sub channels (`warehouse.events`, `alerts`) that the Live Ops dashboard subscribes to.
+**Redis 7** : JWT blocklist (`blocklist:user:{userId}`, TTL = remaining token lifetime, gives immediate revocation with zero maintenance job), live dashboard cache, and pub/sub channels (`warehouse.events`, `alerts`) that the Live Ops dashboard subscribes to.
 
 </details>
 
@@ -163,9 +163,9 @@ Cross-context communication rule, enforced throughout: **same package → JPA re
 <details open>
 <summary><b>🟣 Live Operations</b></summary>
 
-- **Flow Rail** — a live cross-section of the five physical zones (Receiving → Storage → Picking → Packing → Dispatch). Moving dots represent goods in transit, worker-presence chips show zone occupancy, and a fill-strip crossing 80% pulses a bottleneck warning — all driven by a real WebSocket pipeline, not polling.
+- **Flow Rail** : a live cross-section of the five physical zones (Receiving → Storage → Picking → Packing → Dispatch). Moving dots represent goods in transit, worker-presence chips show zone occupancy, and a fill-strip crossing 80% pulses a bottleneck warning — all driven by a real WebSocket pipeline, not polling.
 - STOMP-over-WebSocket, authenticated via CONNECT-frame JWT headers (migrated off URL query params to match Spring's documented pattern and avoid tokens leaking into proxy logs).
-- App-shell-level socket connection — survives navigation between manager pages without reconnecting.
+- App-shell-level socket connection : survives navigation between manager pages without reconnecting.
 
 </details>
 
@@ -205,10 +205,10 @@ Cross-context communication rule, enforced throughout: **same package → JPA re
 
 Real workers use lightweight tablets, not laptops — these are a deliberately separate route branch (`/terminal/*`) from the manager shell, with no pillar navigation:
 
-- **Picker** — one item at a time, large monospace shelf-location readout, scan-to-confirm
-- **Packer** — start/complete task state machine, weight capture on completion
-- **Dispatcher** — shared queue view, per-parcel carrier assignment
-- **Receiver** — select an approved PO, log received quantity/batch/shelf per line
+- **Picker** : one item at a time, large monospace shelf-location readout, scan-to-confirm
+- **Packer** : start/complete task state machine, weight capture on completion
+- **Dispatcher** : shared queue view, per-parcel carrier assignment
+- **Receiver** : select an approved PO, log received quantity/batch/shelf per line
 
 </details>
 
@@ -225,8 +225,8 @@ Real workers use lightweight tablets, not laptops — these are a deliberately s
 <details>
 <summary><b>🩷 Finance & 🧑‍🤝‍🧑 Employees</b></summary>
 
-- **Finance** — invoice queue with 3-way match trigger
-- **Employees** — roster with role/status filtering; role/status edits gated to ADMIN viewers only, and another admin's row is locked from casual inline editing
+- **Finance** : invoice queue with 3-way match trigger
+- **Employees** : roster with role/status filtering; role/status edits gated to ADMIN viewers only, and another admin's row is locked from casual inline editing
 
 </details>
 
