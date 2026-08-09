@@ -25,3 +25,16 @@ export interface DemandForecastResponse {
   days_ahead: number;
   forecasts: DemandForecastLine[];
 }
+
+// ---------- Worker performance & stock valuation ----------
+// PLACEHOLDER TYPES — not confirmed against a live response.
+// Purpose: unblock compilation for dailyReportStore.ts, which was written
+// against these types before the actual response shapes were verified.
+// TODO: replace `Record<string, unknown>` with real field definitions
+// once GET /worker/performance and GET /stock/valuation responses are
+// confirmed, following the same live-verification process already used
+// for DemandForecastResponse above.
+
+export type WorkerPerformanceResponse = Record<string, unknown>;
+
+export type StockValuationResponse = Record<string, unknown>;
