@@ -8,4 +8,4 @@ numpy==1.26.4
 python-dotenv==1.0.1
 pydantic-settings==2.6.1
 python-jose[cryptography]==3.3.0
-requirements.txt
+redis==5.2.0
