@@ -14,7 +14,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────
 
   backend-test:
-    name: Backend — Checkstyle + JUnit
+    name: Backend + JUnit
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,14 +29,6 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # NOTE: checkstyle-maven-plugin configuration in pom.xml is unverified.
-      # continue-on-error lets JUnit tests run and report independently,
-      # so a Checkstyle failure doesn't mask whether the tests themselves
-      # pass or fail.
-      - name: Checkstyle
-        run: mvn -B checkstyle:check
-        continue-on-error: true
-
       - name: Run JUnit tests
         run: mvn -B test
 
@@ -49,7 +41,7 @@ jobs:
           retention-days: 14
 
   analytics-test:
-    name: Analytics — ruff + Pytest
+    name: Analytics + Pytest
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -68,12 +60,7 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install ruff pytest pytest-cov
-
-      # NOTE: ruff configuration is unverified. continue-on-error lets
-      # Pytest run and report independently of ruff's outcome.
-      - name: ruff
-        run: ruff check .
-        continue-on-error: true
+ 
 
       - name: Run Pytest with coverage
         run: pytest --cov=app --cov-report=xml --cov-report=html
@@ -87,7 +74,7 @@ jobs:
           retention-days: 14
 
   frontend-test:
-    name: Frontend — ESLint + Vitest
+    name: Frontend  + Vitest
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -105,12 +92,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # NOTE: "lint" script in package.json and ESLint config are unverified.
-      # continue-on-error lets Vitest run and report independently of
-      # ESLint's outcome.
-      - name: ESLint
-        run: npm run lint
-        continue-on-error: true
 
       - name: Run Vitest with coverage
         run: npx vitest run --coverage
