@@ -75,7 +75,7 @@ def _forecast_sku(records: list[dict], days_ahead: int) -> dict:
         }
 
     X = df[["day_index"]].values
-    y = df["total_moved"].values
+    y = df["total_moved"].to_numpy(dtype=float)
 
     model = LinearRegression()
     model.fit(X, y)

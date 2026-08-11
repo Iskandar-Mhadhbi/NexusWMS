@@ -5,7 +5,9 @@
   separately since it isn't date-scoped the way worker performance is.
 -->
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+/*
+import { computed, onMounted  } from 'vue';
+import { ref } from 'vue';
 import { useDailyReportStore } from '@/stores/dailyReportStore';
 
 const store = useDailyReportStore();
@@ -34,10 +36,10 @@ const topSkusByValue = computed(() => {
 });
 const maxSkuValue = computed(() => topSkusByValue.value[0]?.total_value ?? 1);
 
-onMounted(loadForDate);
+onMounted(loadForDate);*/
 </script>
 
-<template>
+<template><!--
   <div class="daily-report">
     <section class="daily-report__section">
       <div class="daily-report__section-header flex-row">
@@ -54,7 +56,7 @@ onMounted(loadForDate);
           <p v-if="rankedPickers.length === 0" class="daily-report__meta">No picking activity on this date.</p>
           <div v-for="p in rankedPickers" :key="p.worker_id" class="daily-report__bar-row flex-column">
             <div class="daily-report__bar-row-top flex-row">
-              <!-- TODO(backend): raw UUID, no name resolution available yet -->
+               
               <span class="daily-report__mono">{{ p.worker_id.slice(0, 8) }}</span>
               <span class="daily-report__value">{{ p.items_picked }} picked</span>
             </div>
@@ -103,7 +105,7 @@ onMounted(loadForDate);
         </div>
       </div>
     </section>
-  </div>
+  </div>-->
 </template>
 
 <style lang="scss" scoped>

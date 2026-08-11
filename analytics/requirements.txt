@@ -8,4 +8,8 @@ numpy==1.26.4
 python-dotenv==1.0.1
 pydantic-settings==2.6.1
 python-jose[cryptography]==3.3.0
-requirements.txt
+redis==5.2.0
+
+# Test & lint tooling
+pytest==9.1.1
+pytest-cov==7.1.0

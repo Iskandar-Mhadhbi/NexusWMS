@@ -95,12 +95,20 @@ onMounted(() => store.fetchAll());
           <td>{{ u.name }}</td>
           <td>{{ u.email }}</td>
           <td>
-            <select :value="u.role" @change="onRoleChange(u.employeeId, $event)">
+            <select
+              :value="u.role"
+              :disabled="!isEditable(u.role)"
+              @change="onRoleChange(u.employeeId, $event)"
+            >
               <option v-for="r in ROLES" :key="r" :value="r">{{ r }}</option>
             </select>
           </td>
           <td>
-            <select :value="u.status" @change="onStatusChange(u.employeeId, $event)">
+            <select
+              :value="u.status"
+              :disabled="!isEditable(u.role)"
+              @change="onStatusChange(u.employeeId, $event)"
+            >
               <option v-for="s in STATUSES" :key="s" :value="s">{{ s }}</option>
             </select>
           </td>

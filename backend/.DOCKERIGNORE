@@ -1,0 +1,25 @@
+# Build output (rebuilt fresh inside the image anyway)
+target/
+
+# Secrets / local-only configs — never bake into an image
+**/application-dev.yml
+**/application-local.yml
+.env
+**/.env
+
+# Editors / OS cruft
+.vscode/
+.idea/
+*.iml
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docker itself
+Dockerfile
+.dockerignore
+
+# Logs
+logs/

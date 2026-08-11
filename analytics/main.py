@@ -4,6 +4,7 @@ from app.routers import api_router
 from fastapi.openapi.utils import get_openapi
 from contextlib import asynccontextmanager
 from app.core.redis_client import close_redis 
+from app.core.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,7 +19,7 @@ app = FastAPI(
 # CORS 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200","http://localhost:5173"],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["GET"],
     allow_headers=["*"],
@@ -46,8 +47,10 @@ def custom_openapi():
             "bearerFormat": "JWT",
         }
     }
-    for path in schema["paths"].values():
-        for operation in path.values():
+    for path, operations in schema["paths"].items():
+        if path == "/health":
+            continue
+        for operation in operations.values():
             operation["security"] = [{"BearerAuth": []}]
     app.openapi_schema = schema
     return schema
